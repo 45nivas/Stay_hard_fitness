@@ -1,0 +1,10 @@
+Django==4.2.7
+opencv-python==4.8.1.78
+mediapipe==0.10.7
+numpy==1.24.3
+Pillow==10.0.1
+requests==2.31.0
+python-dotenv==1.0.0
+langchain==0.1.0
+langchain-community==0.0.10
+langchain-core==0.1.16

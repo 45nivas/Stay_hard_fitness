@@ -1,0 +1,675 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="calculator-container">
+    <header class="calc-header">
+        <h1>💪 One Rep Max Calculator</h1>
+        <p class="calc-subtitle">Discover your maximum strength potential</p>
+    </header>
+
+    <div class="calculator-card">
+        <div class="calc-info">
+            <h2>🎯 What is 1RM?</h2>
+            <p>Your One Repetition Maximum (1RM) is the maximum weight you can lift for a single repetition of an exercise. It's the gold standard for measuring strength!</p>
+            
+            <div class="formula-section">
+                <h3>📐 Epley Formula</h3>
+                <div class="formula-display">
+                    <span class="formula-text">1RM = Weight × (1 + Reps ÷ 30)</span>
+                </div>
+                <p class="formula-desc">This scientifically proven formula estimates your maximum strength based on submaximal lifts. Most accurate for 5-10 rep ranges. <strong>Note:</strong> If you can only do 1 rep, your estimated 1RM will be very close to that weight since you're already near your maximum!</p>
+                
+                <div class="formula-example">
+                    <h4>💡 Examples:</h4>
+                    <p>If you lift <strong>90 kg for 2 reps</strong>:</p>
+                    <p>1RM = 90 × (1 + 2÷30) = 90 × 1.067 = <strong>96.0 kg</strong></p>
+                    <br>
+                    <p>If you lift <strong>100 kg for 8 reps</strong>:</p>
+                    <p>1RM = 100 × (1 + 8÷30) = 100 × 1.267 = <strong>126.7 kg</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <form id="ormCalculator" class="calc-form">
+            <div class="form-group">
+                <label for="exercise">💪 Select Exercise</label>
+                <select id="exercise" name="exercise" required>
+                    <option value="">Choose your exercise</option>
+                    <option value="bench-press">Bench Press</option>
+                    <option value="squat">Squat</option>
+                    <option value="deadlift">Deadlift</option>
+                    <option value="overhead-press">Overhead Press</option>
+                    <option value="barbell-row">Barbell Row</option>
+                    <option value="incline-press">Incline Press</option>
+                    <option value="front-squat">Front Squat</option>
+                    <option value="other">Other Exercise</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="weight">⚖️ Weight Lifted</label>
+                    <input type="number" id="weight" name="weight" step="0.5" min="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="unit">📏 Unit</label>
+                    <select id="unit" name="unit">
+                        <option value="kg">Kilograms (kg)</option>
+                        <option value="lbs">Pounds (lbs)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="reps">🔢 Repetitions Completed</label>
+                <input type="number" id="reps" name="reps" min="1" max="20" required>
+                <small>Number of reps you completed with the weight above</small>
+            </div>
+
+            <button type="submit" class="calc-button">
+                <span>🚀 Calculate My 1RM</span>
+            </button>
+        </form>
+
+        <div id="result" class="result-section" style="display: none;">
+            <h3>🎉 Your One Rep Max Results</h3>
+            
+            <div class="calculation-display">
+                <h4>📊 Calculation Used</h4>
+                <div class="calc-breakdown">
+                    <span id="calcFormula" class="formula-breakdown">1RM = Weight × (1 + Reps ÷ 30)</span>
+                    <span id="calcSubstitution" class="calc-substitution">Calculation will appear here</span>
+                </div>
+            </div>
+            
+            <div class="result-display">
+                <div class="main-result">
+                    <span class="result-label">Your 1RM is</span>
+                    <span id="ormValue" class="result-value">0</span>
+                    <span id="resultUnit" class="result-unit">kg</span>
+                </div>
+            </div>
+            
+            <div class="percentage-chart">
+                <h4>💡 Training Zone Calculator</h4>
+                <div class="zone-grid">
+                    <div class="training-zone">
+                        <span class="zone-label">90-100% 1RM</span>
+                        <span class="zone-desc">Max Strength</span>
+                        <span id="zone100" class="zone-weight">0 kg</span>
+                    </div>
+                    <div class="training-zone">
+                        <span class="zone-label">80-90% 1RM</span>
+                        <span class="zone-desc">Heavy Strength</span>
+                        <span id="zone90" class="zone-weight">0 kg</span>
+                    </div>
+                    <div class="training-zone">
+                        <span class="zone-label">70-80% 1RM</span>
+                        <span class="zone-desc">Hypertrophy</span>
+                        <span id="zone80" class="zone-weight">0 kg</span>
+                    </div>
+                    <div class="training-zone">
+                        <span class="zone-label">60-70% 1RM</span>
+                        <span class="zone-desc">Strength Endurance</span>
+                        <span id="zone70" class="zone-weight">0 kg</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tips-section">
+                <h4>💪 Pro Tips</h4>
+                <ul>
+                    <li><strong>Safety First:</strong> Always warm up properly before attempting heavy lifts</li>
+                    <li><strong>Form Matters:</strong> Perfect technique is more important than heavy weight</li>
+                    <li><strong>Progressive Overload:</strong> Gradually increase weight over time</li>
+                    <li><strong>Rest & Recovery:</strong> Allow adequate recovery between max effort sessions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* One Rep Max Calculator Styles */
+.calculator-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.calc-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 40px 20px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-xl);
+    border: var(--border-glass);
+    position: relative;
+    overflow: hidden;
+}
+
+.calc-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #e53e3e, #fd7f28);
+    opacity: 0.05;
+    z-index: -1;
+}
+
+.calc-header h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #e53e3e, #fd7f28);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 15px;
+}
+
+.calc-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--text-gray-light);
+    margin: 0;
+    font-weight: 500;
+}
+
+.calculator-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(25px);
+    border-radius: var(--border-radius-xl);
+    padding: 40px;
+    border: var(--border-glass);
+    box-shadow: var(--shadow-glass);
+}
+
+.calc-info {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calc-info h2 {
+    color: var(--primary-red);
+    font-size: var(--font-size-xl);
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.calc-info p {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+}
+
+.formula-section {
+    margin-top: 25px;
+    padding: 25px;
+    background: rgba(147, 51, 234, 0.1);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(147, 51, 234, 0.2);
+}
+
+.formula-section h3 {
+    color: #9333ea;
+    font-size: var(--font-size-lg);
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.formula-display {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(147, 51, 234, 0.3);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    margin: 15px 0;
+}
+
+.formula-text {
+    color: var(--text-white);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    display: block;
+    letter-spacing: 1px;
+}
+
+.formula-desc {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+    margin: 15px 0;
+    font-style: italic;
+}
+
+.formula-example {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    border-left: 4px solid #9333ea;
+}
+
+.formula-example h4 {
+    color: #9333ea;
+    font-size: var(--font-size-base);
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.formula-example p {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+    margin: 5px 0;
+    line-height: 1.4;
+}
+
+.formula-example strong {
+    color: var(--text-white);
+    font-weight: 600;
+}
+
+.calc-form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    color: var(--text-white);
+    font-weight: 600;
+    font-size: var(--font-size-base);
+}
+
+.form-group input,
+.form-group select {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-md);
+    padding: 15px;
+    color: var(--text-white);
+    font-size: var(--font-size-base);
+    transition: var(--transition-smooth);
+}
+
+.form-group select option {
+    background: #2d3748;
+    color: var(--text-white);
+    padding: 10px;
+}
+
+.form-group select:focus option {
+    background: #4a5568;
+    color: var(--text-white);
+}
+
+.form-group select option:hover {
+    background: #4a5568;
+    color: var(--text-white);
+}
+
+.form-group select option:checked,
+.form-group select option:selected {
+    background: var(--primary-red);
+    color: white;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-red);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
+.form-group small {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+}
+
+.calc-button {
+    background: linear-gradient(135deg, #e53e3e, #fd7f28);
+    border: none;
+    border-radius: var(--border-radius-lg);
+    padding: 18px 30px;
+    color: white;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 20px;
+}
+
+.calc-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(229, 62, 62, 0.4);
+}
+
+.calc-button:active {
+    transform: translateY(-1px);
+}
+
+.result-section {
+    margin-top: 40px;
+    padding: 30px;
+    background: rgba(56, 161, 105, 0.1);
+    border-radius: var(--border-radius-lg);
+    border: 2px solid rgba(56, 161, 105, 0.2);
+}
+
+.result-section h3 {
+    text-align: center;
+    color: var(--success-green);
+    font-size: var(--font-size-xl);
+    margin-bottom: 25px;
+    font-weight: 700;
+}
+
+.calculation-display {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calculation-display h4 {
+    color: var(--text-white);
+    font-size: var(--font-size-base);
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.calc-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+}
+
+.formula-breakdown {
+    color: #9333ea;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
+.calc-substitution {
+    color: var(--text-white);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    font-family: 'Courier New', monospace;
+}
+
+.result-display {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.result-interpretation {
+    background: rgba(147, 51, 234, 0.1);
+    border: 1px solid rgba(147, 51, 234, 0.2);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.result-interpretation p {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.result-interpretation strong {
+    color: #9333ea;
+}
+
+.main-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.result-label {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+}
+
+.result-value {
+    color: var(--success-green);
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.result-unit {
+    color: var(--text-white);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.percentage-chart h4 {
+    color: var(--text-white);
+    font-size: var(--font-size-lg);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.zone-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.training-zone {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition-smooth);
+}
+
+.training-zone:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.zone-label {
+    display: block;
+    color: var(--success-green);
+    font-weight: 700;
+    font-size: var(--font-size-base);
+    margin-bottom: 5px;
+}
+
+.zone-desc {
+    display: block;
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+    margin-bottom: 10px;
+}
+
+.zone-weight {
+    display: block;
+    color: var(--text-white);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.tips-section {
+    margin-top: 30px;
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tips-section h4 {
+    color: var(--primary-red);
+    font-size: var(--font-size-lg);
+    margin-bottom: 15px;
+}
+
+.tips-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tips-section li {
+    color: var(--text-gray-light);
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+    line-height: 1.5;
+}
+
+.tips-section li::before {
+    content: '💡';
+    position: absolute;
+    left: 0;
+    top: 8px;
+}
+
+.tips-section strong {
+    color: var(--text-white);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .calculator-card {
+        padding: 25px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .zone-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .result-value {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .calculator-container {
+        padding: 15px;
+    }
+    
+    .calc-header {
+        padding: 30px 15px;
+    }
+    
+    .calculator-card {
+        padding: 20px;
+    }
+    
+    .calc-info {
+        padding: 20px;
+    }
+}
+</style>
+
+<script>
+document.getElementById('ormCalculator').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const weight = parseFloat(document.getElementById('weight').value);
+    const reps = parseInt(document.getElementById('reps').value);
+    const unit = document.getElementById('unit').value;
+    
+    // Epley Formula: 1RM = weight × (1 + reps/30)
+    // This is the most widely used formula for estimating one-rep max
+    // It's accurate for moderate rep ranges (5-10 reps) and widely accepted in fitness industry
+    const multiplier = 1 + (reps / 30);
+    const oneRepMax = weight * multiplier;
+    
+    // Show the calculation breakdown with proper precision
+    document.getElementById('calcSubstitution').textContent = 
+        `1RM = ${weight} × (1 + ${reps}÷30) = ${weight} × ${multiplier.toFixed(3)} = ${oneRepMax.toFixed(1)} ${unit}`;
+    
+    // Display result with one decimal place like Fittr
+    document.getElementById('ormValue').textContent = oneRepMax.toFixed(1);
+    document.getElementById('resultUnit').textContent = unit;
+    
+    // Add contextual explanation based on reps
+    let interpretation = '';
+    if (reps === 1) {
+        interpretation = `<div class="result-interpretation">
+            <p><strong>💡 Interpretation:</strong> Since you can only lift this weight for 1 rep, your estimated 1RM is very close to what you already lifted. You're already near your maximum strength for this exercise!</p>
+        </div>`;
+    } else if (reps <= 3) {
+        interpretation = `<div class="result-interpretation">
+            <p><strong>💡 Interpretation:</strong> With ${reps} reps, you have some strength reserves. Your true maximum is estimated to be ${(oneRepMax - weight).toFixed(1)} ${unit} higher than what you lifted.</p>
+        </div>`;
+    } else if (reps <= 10) {
+        interpretation = `<div class="result-interpretation">
+            <p><strong>💡 Interpretation:</strong> Excellent! With ${reps} reps, you have significant strength potential. Your estimated 1RM is ${(oneRepMax - weight).toFixed(1)} ${unit} higher than your test weight.</p>
+        </div>`;
+    } else {
+        interpretation = `<div class="result-interpretation">
+            <p><strong>💡 Interpretation:</strong> High rep range detected. While the formula works, consider testing with 5-10 reps for more accurate 1RM estimation.</p>
+        </div>`;
+    }
+    
+    // Insert interpretation after the main result
+    const resultDisplay = document.querySelector('.result-display');
+    const existingInterpretation = document.querySelector('.result-interpretation');
+    if (existingInterpretation) {
+        existingInterpretation.remove();
+    }
+    resultDisplay.insertAdjacentHTML('afterend', interpretation);
+    
+    // Calculate training zones based on percentages of 1RM
+    document.getElementById('zone100').textContent = `${(oneRepMax * 0.95).toFixed(1)} - ${oneRepMax.toFixed(1)} ${unit}`;
+    document.getElementById('zone90').textContent = `${(oneRepMax * 0.85).toFixed(1)} - ${(oneRepMax * 0.9).toFixed(1)} ${unit}`;
+    document.getElementById('zone80').textContent = `${(oneRepMax * 0.75).toFixed(1)} - ${(oneRepMax * 0.8).toFixed(1)} ${unit}`;
+    document.getElementById('zone70').textContent = `${(oneRepMax * 0.65).toFixed(1)} - ${(oneRepMax * 0.7).toFixed(1)} ${unit}`;
+    
+    // Show result section
+    document.getElementById('result').style.display = 'block';
+    
+    // Smooth scroll to result
+    document.getElementById('result').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+});
+</script>
+{% endblock %}

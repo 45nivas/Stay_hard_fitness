@@ -1,4 +1,4 @@
-/* Advanced Fitness-Themed UI for FitPro Gym - Inspired by Modern Fitness Platforms */
+/* Advanced Fitness-Themed UI for Stay Hard Fitness - Inspired by Modern Fitness Platforms */
 :root {
     /* Fittr-Inspired Color Palette */
     --primary-red: #e53e3e;
@@ -185,7 +185,20 @@ html {
 }
 
 body {
-    background: var(--bg-primary);
+    /* Multi-layer gym background: gradient overlay + Pinterest image + fallback gradient */
+    background: 
+        /* Dark overlay for readability */
+        linear-gradient(135deg, rgba(15, 20, 25, 0.75) 0%, rgba(26, 32, 44, 0.65) 50%, rgba(45, 55, 72, 0.55) 100%),
+        /* Pinterest gym image */
+        url('https://i.pinimg.com/1200x/08/0a/33/080a33d7d7b59ebfa3efb68166bc96fa.jpg'),
+        /* Fallback gym-themed gradient */
+        linear-gradient(135deg, #1a1a1a 0%, #2d1b2d 25%, #1f2937 50%, #374151 75%, #1f2937 100%),
+        /* Ultimate fallback */
+        var(--bg-primary);
+    background-size: cover, cover, cover, cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: var(--text-white);
     font-family: var(--font-primary);
     margin: 0;
@@ -197,7 +210,7 @@ body {
     letter-spacing: -0.01em;
 }
 
-/* Modern Fitness Background Pattern - Fittr Inspired */
+/* Modern Fitness Background Pattern with Image Overlay - Fittr Inspired */
 body::before {
     content: '';
     position: fixed;
@@ -205,14 +218,15 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: 
+    background: 
+        linear-gradient(135deg, rgba(15, 20, 25, 0.85) 0%, rgba(26, 32, 44, 0.8) 50%, rgba(45, 55, 72, 0.75) 100%),
         radial-gradient(circle at 15% 15%, rgba(229, 62, 62, 0.15) 0%, transparent 40%),
         radial-gradient(circle at 85% 85%, rgba(253, 127, 40, 0.12) 0%, transparent 40%),
         radial-gradient(circle at 50% 30%, rgba(56, 161, 105, 0.08) 0%, transparent 30%),
         radial-gradient(circle at 30% 70%, rgba(128, 90, 213, 0.1) 0%, transparent 35%);
     z-index: -1;
     animation: gradient-shift 20s ease infinite;
-    background-size: 500% 500%;
+    background-size: 100% 100%, 500% 500%, 500% 500%, 500% 500%, 500% 500%;
 }
 
 /* Modern Main Wrapper - Fittr Inspired */
@@ -260,6 +274,41 @@ body::before {
     animation: float 30s linear infinite;
     z-index: -1;
 }
+
+/* Background Image Utility Classes */
+/* You can apply these classes to body element via JavaScript or template conditionally */
+.bg-gym-modern {
+    background-image: 
+        var(--bg-primary),
+        url('/static/images/gym-background.jpg');
+}
+
+.bg-gym-classic {
+    background-image: 
+        var(--bg-primary),
+        url('/static/images/gym-classic.jpg');
+}
+
+.bg-fitness-motivation {
+    background-image: 
+        var(--bg-primary),
+        url('/static/images/fitness-motivation.jpg');
+}
+
+/* External image support (like Pinterest images) */
+.bg-external-image {
+    background-image: 
+        var(--bg-primary),
+        url('https://i.pinimg.com/1200x/08/0a/33/080a33d7d7b59ebfa3efb68166bc96fa.jpg');
+}
+
+/* Background image positioning and blend modes */
+.bg-image-center { background-position: center center; }
+.bg-image-top { background-position: center top; }
+.bg-image-bottom { background-position: center bottom; }
+.bg-blend-overlay { background-blend-mode: overlay; }
+.bg-blend-multiply { background-blend-mode: multiply; }
+.bg-blend-soft-light { background-blend-mode: soft-light; }
 
 /* Modern Header Styles - Fittr Inspired */
 header {

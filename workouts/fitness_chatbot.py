@@ -30,20 +30,8 @@ class FitnessChatbot:
     
     def initialize_conversation(self) -> str:
         """Start the fitness assessment conversation"""
-        welcome_message = """
-🏋️ Welcome to FitPro AI Trainer! 🏋️
-
-I'm here to help you achieve your fitness goals! Let me learn about you first.
-
-To create your personalized fitness plan, I need to know:
-• Your height and weight
-• Your fitness goals (weight loss, muscle gain, strength, etc.)
-• Your current fitness level
-• Any limitations or preferences
-
-Let's start! What's your height and weight?
-"""
-        return welcome_message
+        # No welcome message - straight to business
+        return ""
     
     def extract_measurements(self, message: str) -> Dict:
         """Extract height and weight from user message"""
@@ -115,27 +103,78 @@ Let's start! What's your height and weight?
         
         return goals
     
+    def calculate_bulking_calories(self, height: float, weight: float, age: int, gender: str = "Male") -> Dict[str, int]:
+        """Calculate exact bulking calories and macros"""
+        # Calculate BMR using Mifflin-St Jeor Equation
+        if gender.lower() == "male":
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+        else:
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
+        
+        # TDEE (assuming moderate activity for gym-goers)
+        tdee = bmr * 1.6  # Moderate exercise 3-5 days/week
+        
+        # Bulking calories (TDEE + 300-500 surplus)
+        bulking_calories = int(tdee + 400)  # Conservative bulking surplus
+        
+        # Macros for bulking
+        protein = int(weight * 2.2)  # 2.2g per kg for bulking
+        fat = int(bulking_calories * 0.25 / 9)  # 25% of calories from fat
+        carbs = int((bulking_calories - (protein * 4) - (fat * 9)) / 4)  # Rest from carbs
+        
+        return {
+            'bmr': int(bmr),
+            'tdee': int(tdee),
+            'bulking_calories': bulking_calories,
+            'protein': protein,
+            'carbs': carbs,
+            'fat': fat
+        }
+
+    def get_direct_fitness_answer(self, message: str, context: str) -> str:
+        """No more hardcoded responses - everything goes to LLM"""
+        # Remove all hardcoded responses, let LLM handle everything
+        return None
+
     def generate_ollama_response(self, prompt: str) -> str:
-        """Generate response using local Ollama LLM"""
+        """Generate response using local Ollama LLM - 100% AI powered"""
         try:
             # Ollama API endpoint
             url = "http://localhost:11434/api/generate"
             
-            # Create fitness-focused prompt
-            system_prompt = """You are a professional fitness trainer and nutritionist AI assistant. 
-            Provide helpful, accurate, and motivating fitness advice. Keep responses concise but informative.
-            Focus on practical workout routines, proper form, nutrition guidance, and goal-specific recommendations.
-            Always prioritize safety and encourage proper form over heavy weights."""
+            # Enhanced fitness expert with calculation knowledge
+            system_prompt = """You are a knowledgeable fitness expert and personal trainer. Give natural, conversational answers with specific numbers when needed.
+
+            KEY KNOWLEDGE:
+            - BMR calculation: Men = (10 × weight_kg) + (6.25 × height_cm) - (5 × age) + 5
+            - TDEE = BMR × 1.6 (moderate activity)  
+            - Bulking calories = TDEE + 400 calories surplus
+            - Protein for bulking = 2.2g per kg body weight
+            - Carbs = remaining calories after protein and fat
+            - Fat = 25% of total calories
+
+            RESPONSE STYLE:
+            - Be conversational but knowledgeable
+            - Give specific numbers and dosages
+            - Use bullet points when helpful
+            - No fluff or motivation talk
+            - Act like a smart gym buddy who knows the science
             
-            full_prompt = f"{system_prompt}\n\nUser: {prompt}\n\nAssistant:"
+            EXAMPLES:
+            "Creatine timing?" → "Timing doesn't really matter bro. 5g daily, mix it with water or your protein shake. I take mine post-workout but pre-workout works too."
+            "How many calories?" → Calculate using the formulas above and give the exact numbers with breakdown.
+            """
+            
+            full_prompt = f"{system_prompt}\n\nUser Question: {prompt}\n\nAnswer:"
             
             payload = {
-                "model": "llama3.2",  # You can change this to any model you have installed
+                "model": "llama3.2",
                 "prompt": full_prompt,
                 "stream": False,
                 "options": {
-                    "temperature": 0.7,
-                    "max_tokens": 500
+                    "temperature": 0.3,  # Balance between consistency and naturalness
+                    "max_tokens": 400,
+                    "top_p": 0.9
                 }
             }
             
@@ -151,96 +190,111 @@ Let's start! What's your height and weight?
             return self.fallback_response(prompt)
     
     def fallback_response(self, message: str) -> str:
-        """Fallback response when LLM is not available"""
+        """Fallback response when LLM is not available - direct answers only"""
         message_lower = message.lower()
         
         # Basic keyword matching for common fitness questions
         if any(word in message_lower for word in ['workout', 'exercise', 'routine']):
-            return """Here's a basic full-body workout routine:
+            return """**BASIC BULKING WORKOUT:**
             
-**Beginner Routine (3x/week):**
-• Squats: 3 sets of 8-12 reps
-• Push-ups: 3 sets of 5-15 reps
-• Pull-ups/Assisted pull-ups: 3 sets of 3-8 reps
-• Plank: 3 sets of 30-60 seconds
-• Walking/Light cardio: 20-30 minutes
+**Day 1,3,5:**
+• Squats: 4x8-10
+• Bench Press: 4x8-10  
+• Bent Rows: 4x8-10
+• Overhead Press: 3x8-10
+• Deadlifts: 3x5 (Day 1 only)
 
-Focus on proper form and gradually increase intensity!"""
+**Day 2,4,6:**
+• Pull-ups: 4x6-12
+• Dips: 4x8-12
+• Barbell Curls: 3x10-12
+• Close-Grip Bench: 3x10-12
 
-        elif any(word in message_lower for word in ['diet', 'nutrition', 'eat']):
-            return """Basic nutrition guidelines:
+Rest 48-72 hours between sessions."""
+
+        elif any(word in message_lower for word in ['calorie', 'diet', 'nutrition', 'eat']):
+            return """**BULKING CALORIES (General):**
             
-**For general fitness:**
-• Eat whole foods: lean proteins, vegetables, fruits, whole grains
-• Stay hydrated: 8+ glasses of water daily
-• Protein: 0.8-1.2g per kg body weight
-• Eat balanced meals every 3-4 hours
-• Limit processed foods and added sugars
+For 173cm, 21 years old:
+• **Daily: 2800-3200 calories**
+• **Protein: 140-160g**
+• **Carbs: 350-400g** 
+• **Fat: 90-110g**
 
-Adjust portions based on your specific goals!"""
+**BULK FOODS:**
+• Rice, oats, pasta (400g cooked daily)
+• Chicken breast (200g daily)
+• Eggs (3-4 whole daily)
+• Nuts/peanut butter (30g daily)
+• Whole milk (500ml daily)
+
+Eat every 3 hours."""
 
         else:
-            return """I'm here to help with your fitness journey! You can ask me about:
+            return """**AVAILABLE HELP:**
             
-• Workout routines and exercises
-• Nutrition and diet advice  
-• Form and technique tips
-• Goal-specific training plans
-• Recovery and rest recommendations
+• Bulking calories & macros
+• Workout routines with reps
+• Specific exercise form
+• Meal timing and foods
+• Supplement timing
 
-What would you like to know about fitness?"""
+Ask specific questions like:
+"How many calories for bulking?"
+"What workout for chest growth?"
+"When to take protein?" """
     
     def process_message(self, message: str, user_profile: Optional[Dict] = None) -> str:
         """Process user message and generate appropriate response"""
         self.conversation_history.append({"user": message, "timestamp": datetime.now()})
         
-        # Extract measurements if present
+        # If user profile is provided, use it to override/update stored data
+        if user_profile:
+            # Update user data with profile information
+            self.user_data.update({
+                'height': user_profile.get('height'),
+                'weight': user_profile.get('weight'),
+                'age': user_profile.get('age'),
+                'gender': user_profile.get('gender'),
+                'fitness_level': user_profile.get('fitness_level'),
+                'goals': [user_profile.get('primary_goal')] if user_profile.get('primary_goal') else self.user_data.get('goals', []),
+                'primary_goal_code': user_profile.get('primary_goal_code'),
+                'injuries_or_limitations': user_profile.get('injuries_or_limitations'),
+                'available_time': user_profile.get('available_time'),
+                'weak_muscles': user_profile.get('weak_muscles', []),
+                'equipment_available': user_profile.get('equipment_available', []),
+                'calories_per_day': user_profile.get('calories_per_day'),
+                'bmi': user_profile.get('bmi'),
+                'bmi_category': user_profile.get('bmi_category')
+            })
+        
+        # Extract measurements if present in message
         measurements = self.extract_measurements(message)
         if measurements:
             self.user_data.update(measurements)
-            
-            response = f"Great! I've noted:\n"
-            if 'height' in measurements:
-                response += f"• Height: {measurements['height']} cm\n"
-            if 'weight' in measurements:
-                response += f"• Weight: {measurements['weight']} kg\n"
-                
-            # Calculate BMI if we have both measurements
-            if 'height' in self.user_data and 'weight' in self.user_data:
-                bmi = self.user_data['weight'] / ((self.user_data['height']/100) ** 2)
-                bmi_category = self.get_bmi_category(bmi)
-                response += f"• BMI: {bmi:.1f} ({bmi_category})\n"
-            
-            response += "\nNow, what are your fitness goals? (e.g., lose weight, build muscle, get stronger, improve endurance)"
-            return response
+            # Skip fluff, continue to process the actual question
         
         # Extract goals if present
         goals = self.extract_goals(message)
         if goals:
             self.user_data['goals'] = goals
-            response = f"Excellent! Your goals: {', '.join(goals)}\n\n"
-            
-            # Generate personalized advice using LLM
-            context = self.build_context_for_llm()
-            llm_prompt = f"""Based on this user profile: {context}
-            
-            Please provide:
-            1. A personalized workout recommendation
-            2. Basic nutrition advice
-            3. Tips for achieving their goals
-            
-            User message: {message}"""
-            
-            llm_response = self.generate_ollama_response(llm_prompt)
-            return response + llm_response
+            # Skip fluff, continue to process the actual question
         
-        # General fitness query - use LLM
+        # EVERYTHING goes to LLM now - no hardcoded responses
         context = self.build_context_for_llm()
-        llm_prompt = f"""User profile: {context}
         
-        User question: {message}
-        
-        Please provide helpful fitness advice based on their profile and question."""
+        # Enhanced LLM prompt with user's complete profile data
+        llm_prompt = f"""User Profile: {context}
+
+User Question: {message}
+
+Give a natural, conversational answer. If they ask about calories, calculate using:
+- BMR: (10 × {self.user_data.get('weight', 75)}) + (6.25 × {self.user_data.get('height', 173)}) - (5 × {self.user_data.get('age', 21)}) + 5
+- TDEE: BMR × 1.6 
+- Bulking calories: TDEE + 400
+- Protein: {self.user_data.get('weight', 75)} kg × 2.2g = {int(self.user_data.get('weight', 75) * 2.2)}g
+
+Answer like a knowledgeable gym buddy, not a robot."""
         
         return self.generate_ollama_response(llm_prompt)
     
@@ -248,15 +302,57 @@ What would you like to know about fitness?"""
         """Build context string for LLM from user data"""
         context_parts = []
         
+        # Basic measurements
         if 'height' in self.user_data and 'weight' in self.user_data:
-            bmi = self.user_data['weight'] / ((self.user_data['height']/100) ** 2)
-            context_parts.append(f"Height: {self.user_data['height']}cm, Weight: {self.user_data['weight']}kg, BMI: {bmi:.1f}")
+            bmi = self.user_data.get('bmi') or (self.user_data['weight'] / ((self.user_data['height']/100) ** 2))
+            bmi_category = self.user_data.get('bmi_category') or self.get_bmi_category(bmi)
+            context_parts.append(f"Height: {self.user_data['height']}cm, Weight: {self.user_data['weight']}kg, BMI: {bmi:.1f} ({bmi_category})")
         
+        # Demographics
+        if 'age' in self.user_data:
+            context_parts.append(f"Age: {self.user_data['age']}")
+        if 'gender' in self.user_data:
+            context_parts.append(f"Gender: {self.user_data['gender']}")
+        
+        # Fitness info
+        if 'fitness_level' in self.user_data:
+            context_parts.append(f"Fitness Level: {self.user_data['fitness_level']}")
         if 'goals' in self.user_data:
-            context_parts.append(f"Goals: {', '.join(self.user_data['goals'])}")
+            context_parts.append(f"Primary Goal: {', '.join(self.user_data['goals'])}")
+        elif 'primary_goal_code' in self.user_data:
+            # Map goal codes to readable names
+            goal_mapping = {
+                'weight_loss': 'Weight Loss',
+                'muscle_gain': 'Muscle Gain', 
+                'bulking': 'Bulking',
+                'cutting': 'Cutting',
+                'strength': 'Build Strength',
+                'endurance': 'Improve Endurance',
+                'toning': 'Toning & Definition',
+                'general_fitness': 'General Fitness',
+                'maintaining': 'Maintaining'
+            }
+            goal_name = goal_mapping.get(self.user_data['primary_goal_code'], self.user_data['primary_goal_code'])
+            context_parts.append(f"Primary Goal: {goal_name}")
+        
+        # Additional details
+        if 'available_time' in self.user_data:
+            context_parts.append(f"Available workout time: {self.user_data['available_time']} minutes")
+        if 'weak_muscles' in self.user_data and self.user_data['weak_muscles']:
+            weak_muscles = [m.strip() for m in self.user_data['weak_muscles'] if m.strip()]
+            if weak_muscles:
+                context_parts.append(f"Weak muscle groups: {', '.join(weak_muscles)}")
+        if 'equipment_available' in self.user_data and self.user_data['equipment_available']:
+            equipment = [e.strip() for e in self.user_data['equipment_available'] if e.strip()]
+            if equipment:
+                context_parts.append(f"Available equipment: {', '.join(equipment)}")
+        if 'injuries_or_limitations' in self.user_data and self.user_data['injuries_or_limitations']:
+            context_parts.append(f"Injuries/Limitations: {self.user_data['injuries_or_limitations']}")
+        if 'calories_per_day' in self.user_data and self.user_data['calories_per_day']:
+            context_parts.append(f"Daily calorie intake: {self.user_data['calories_per_day']} calories")
         
         return " | ".join(context_parts) if context_parts else "No profile data available"
-    
+
     def get_bmi_category(self, bmi: float) -> str:
         """Get BMI category"""
         if bmi < 18.5:

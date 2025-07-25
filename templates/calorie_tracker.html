@@ -1,0 +1,982 @@
+{% extends 'base.html' %}
+{% block content %}
+{% csrf_token %}
+<div class="calorie-tracker-container">
+    <header class="tracker-header">
+        <h1>🍎 Voice Calorie Tracker</h1>
+        <p class="tracker-subtitle">Log your meals with voice or text - Get instant nutrition insights</p>
+    </header>
+
+    <!-- Daily Summary Card -->
+    <div class="summary-card" id="summary-card">
+        <h2>📊 Today's Nutrition</h2>
+        <div class="macro-grid">
+            <div class="macro-item calories">
+                <span class="macro-icon">🔥</span>
+                <div class="macro-details">
+                    <span id="sum-cal" class="macro-value">0</span>
+                    <span class="macro-label">Calories</span>
+                </div>
+            </div>
+            <div class="macro-item protein">
+                <span class="macro-icon">💪</span>
+                <div class="macro-details">
+                    <span id="sum-protein" class="macro-value">0</span>
+                    <span class="macro-label">Protein (g)</span>
+                </div>
+            </div>
+            <div class="macro-item carbs">
+                <span class="macro-icon">🌾</span>
+                <div class="macro-details">
+                    <span id="sum-carbs" class="macro-value">0</span>
+                    <span class="macro-label">Carbs (g)</span>
+                </div>
+            </div>
+            <div class="macro-item fats">
+                <span class="macro-icon">🥑</span>
+                <div class="macro-details">
+                    <span id="sum-fat" class="macro-value">0</span>
+                    <span class="macro-label">Fat (g)</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Nutrition Details -->
+        <div class="enhanced-nutrition">
+            <h4>🔬 Detailed Nutrition</h4>
+            <div class="nutrition-details-grid">
+                <div class="nutrition-item fiber">
+                    <span class="nutrition-icon">🌿</span>
+                    <div class="nutrition-details">
+                        <span id="sum-fiber" class="nutrition-value">0</span>
+                        <span class="nutrition-label">Fiber (g)</span>
+                    </div>
+                </div>
+                <div class="nutrition-item sugar">
+                    <span class="nutrition-icon">🍯</span>
+                    <div class="nutrition-details">
+                        <span id="sum-sugar" class="nutrition-value">0</span>
+                        <span class="nutrition-label">Sugar (g)</span>
+                    </div>
+                </div>
+                <div class="nutrition-item sodium">
+                    <span class="nutrition-icon">🧂</span>
+                    <div class="nutrition-details">
+                        <span id="sum-sodium" class="nutrition-value">0</span>
+                        <span class="nutrition-label">Sodium (mg)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Input Section -->
+    <div class="voice-input-section">
+        <h3>🎤 Log Your Meal</h3>
+        <div class="meal-form">
+            <button type="button" id="record" class="voice-btn">
+                <span class="btn-icon">🎤</span>
+                <span class="btn-text">Start Recording</span>
+            </button>
+            <div id="transcript" class="transcript-display">
+                <span class="placeholder-text">Say your meal... (e.g., "2 boiled eggs and 100g oats")</span>
+            </div>
+            <button type="button" id="log" class="log-btn" disabled>
+                <span class="btn-icon">➕</span>
+                <span class="btn-text">Log Meal</span>
+            </button>
+        </div>
+        
+        <!-- Manual Text Input Alternative -->
+        <div class="manual-input">
+            <input type="text" id="manual-text" placeholder="Or type your meal here..." class="manual-input-field">
+            <button type="button" id="manual-log" class="manual-log-btn">
+                <span>📝 Log Manually</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Meals Table -->
+    <div class="meals-section">
+        <h3>🍽️ Today's Meals</h3>
+        <div class="table-container">
+            <table id="meal-table" class="meals-table">
+                <thead>
+                    <tr>
+                        <th>Food</th>
+                        <th>Quantity</th>
+                        <th>Unit</th>
+                        <th>Calories</th>
+                        <th>Protein</th>
+                        <th>Carbs</th>
+                        <th>Fat</th>
+                        <th>Fiber</th>
+                        <th>Sugar</th>
+                        <th>Sodium</th>
+                        <th>Source</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="meal-tbody">
+                    <!-- Meals will be inserted here dynamically -->
+                </tbody>
+            </table>
+            <div id="no-meals-message" class="no-meals" style="display: none;">
+                <span class="no-meals-icon">🍽️</span>
+                <p>No meals logged today. Start by recording or typing your first meal!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="tips-section">
+        <h3>💡 Pro Tips</h3>
+        <div class="tips-grid">
+            <div class="tip-item">
+                <span class="tip-icon">🎯</span>
+                <div class="tip-content">
+                    <h4>Be Specific</h4>
+                    <p>Include quantities and cooking methods for better accuracy</p>
+                </div>
+            </div>
+            <div class="tip-item">
+                <span class="tip-icon">🗣️</span>
+                <div class="tip-content">
+                    <h4>Clear Speech</h4>
+                    <p>Speak clearly and pause between different food items</p>
+                </div>
+            </div>
+            <div class="tip-item">
+                <span class="tip-icon">📱</span>
+                <div class="tip-content">
+                    <h4>Mobile Friendly</h4>
+                    <p>Works great on mobile devices with microphone access</p>
+                </div>
+            </div>
+            <div class="tip-item">
+                <span class="tip-icon">🤖</span>
+                <div class="tip-content">
+                    <h4>AI Powered</h4>
+                    <p>Uses local AI to estimate nutrition for any food</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+</div>
+
+<style>
+/* Calorie Tracker Styles */
+.calorie-tracker-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.tracker-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 40px 20px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-xl);
+    border: var(--border-glass);
+    position: relative;
+    overflow: hidden;
+}
+
+.tracker-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #16a085, #27ae60);
+    opacity: 0.05;
+    z-index: -1;
+}
+
+.tracker-header h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #16a085, #27ae60);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 15px;
+}
+
+.tracker-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--text-gray-light);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Summary Card */
+.summary-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(25px);
+    border-radius: var(--border-radius-xl);
+    padding: 30px;
+    margin-bottom: 30px;
+    border: var(--border-glass);
+    box-shadow: var(--shadow-glass);
+}
+
+.summary-card h2 {
+    color: var(--text-white);
+    font-size: var(--font-size-xl);
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.macro-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.macro-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-lg);
+    padding: 25px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition-smooth);
+}
+
+.macro-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.macro-item.calories {
+    border-left: 4px solid #e74c3c;
+}
+
+.macro-item.protein {
+    border-left: 4px solid #3498db;
+}
+
+.macro-item.carbs {
+    border-left: 4px solid #f39c12;
+}
+
+.macro-item.fats {
+    border-left: 4px solid #9b59b6;
+}
+
+.macro-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.macro-value {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-white);
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.macro-label {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+/* Enhanced Nutrition Details */
+.enhanced-nutrition {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.enhanced-nutrition h4 {
+    margin-bottom: 15px;
+    color: var(--text-white);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.nutrition-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.nutrition-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-lg);
+    transition: all 0.3s ease;
+}
+
+.nutrition-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.nutrition-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.nutrition-details {
+    flex: 1;
+}
+
+.nutrition-value {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-white);
+    line-height: 1;
+    margin-bottom: 3px;
+}
+
+.nutrition-label {
+    color: var(--text-gray-light);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Voice Input Section */
+.voice-input-section {
+    background: var(--bg-glass);
+    backdrop-filter: blur(25px);
+    border-radius: var(--border-radius-xl);
+    padding: 30px;
+    margin-bottom: 30px;
+    border: var(--border-glass);
+    box-shadow: var(--shadow-glass);
+}
+
+.voice-input-section h3 {
+    color: var(--text-white);
+    font-size: var(--font-size-lg);
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.meal-form {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.voice-btn, .log-btn {
+    background: linear-gradient(135deg, #16a085, #27ae60);
+    border: none;
+    border-radius: var(--border-radius-lg);
+    padding: 15px 25px;
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 160px;
+    justify-content: center;
+}
+
+.voice-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(22, 160, 133, 0.3);
+}
+
+.log-btn:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    cursor: not-allowed;
+    color: var(--text-gray-light);
+}
+
+.log-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+}
+
+.transcript-display {
+    flex: 1;
+    min-width: 300px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-md);
+    padding: 15px 20px;
+    color: var(--text-white);
+    font-size: var(--font-size-base);
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    transition: var(--transition-smooth);
+}
+
+.transcript-display:focus-within {
+    border-color: var(--success-green);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.placeholder-text {
+    color: var(--text-gray-light);
+    font-style: italic;
+}
+
+.manual-input {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.manual-input-field {
+    flex: 1;
+    min-width: 300px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-md);
+    padding: 15px 20px;
+    color: var(--text-white);
+    font-size: var(--font-size-base);
+    transition: var(--transition-smooth);
+}
+
+.manual-input-field:focus {
+    outline: none;
+    border-color: var(--success-green);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.manual-log-btn {
+    background: linear-gradient(135deg, #8e44ad, #9b59b6);
+    border: none;
+    border-radius: var(--border-radius-lg);
+    padding: 15px 25px;
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    min-width: 160px;
+}
+
+.manual-log-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(155, 89, 182, 0.3);
+}
+
+/* Meals Section */
+.meals-section {
+    background: var(--bg-glass);
+    backdrop-filter: blur(25px);
+    border-radius: var(--border-radius-xl);
+    padding: 30px;
+    margin-bottom: 30px;
+    border: var(--border-glass);
+    box-shadow: var(--shadow-glass);
+}
+
+.meals-section h3 {
+    color: var(--text-white);
+    font-size: var(--font-size-lg);
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.table-container {
+    overflow-x: auto;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.meals-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.meals-table th,
+.meals-table td {
+    padding: 15px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.meals-table th {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-white);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.meals-table td {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+}
+
+.meals-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.delete-btn {
+    background: rgba(231, 76, 60, 0.2);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: var(--border-radius-sm);
+    padding: 8px 12px;
+    color: #e74c3c;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.delete-btn:hover {
+    background: rgba(231, 76, 60, 0.3);
+    transform: scale(1.05);
+}
+
+.no-meals {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-gray-light);
+}
+
+.no-meals-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.no-meals p {
+    font-size: var(--font-size-base);
+    margin: 0;
+}
+
+/* Tips Section */
+.tips-section {
+    background: var(--bg-glass);
+    backdrop-filter: blur(25px);
+    border-radius: var(--border-radius-xl);
+    padding: 30px;
+    border: var(--border-glass);
+    box-shadow: var(--shadow-glass);
+}
+
+.tips-section h3 {
+    color: var(--text-white);
+    font-size: var(--font-size-lg);
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.tip-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition-smooth);
+}
+
+.tip-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.tip-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 15px;
+}
+
+.tip-content h4 {
+    color: var(--text-white);
+    font-size: var(--font-size-base);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.tip-content p {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--success-green);
+    color: white;
+    padding: 15px 25px;
+    border-radius: var(--border-radius-lg);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 10000;
+    max-width: 300px;
+}
+
+.toast.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.toast.error {
+    background: var(--primary-red);
+}
+
+.toast.warning {
+    background: #f39c12;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .calorie-tracker-container {
+        padding: 15px;
+    }
+    
+    .macro-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .meal-form {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .manual-input {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .transcript-display,
+    .manual-input-field {
+        min-width: 100%;
+    }
+    
+    .tips-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tracker-header {
+        padding: 30px 15px;
+    }
+    
+    .macro-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .nutrition-details-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .nutrition-item {
+        padding: 12px;
+    }
+    
+    .nutrition-value {
+        font-size: 1.2rem;
+    }
+    
+    .meals-table th,
+    .meals-table td {
+        padding: 10px 8px;
+        font-size: var(--font-size-xs);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let transcript = '';
+    const recordBtn = document.getElementById('record');
+    const logBtn = document.getElementById('log');
+    const transcriptDisplay = document.getElementById('transcript');
+    const mealTbody = document.getElementById('meal-tbody');
+    const toast = document.getElementById('toast');
+    const manualInput = document.getElementById('manual-text');
+    const manualLogBtn = document.getElementById('manual-log');
+    const noMealsMessage = document.getElementById('no-meals-message');
+
+    // Toast notification function
+    function showToast(message, type = 'success') {
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    // Animate summary numbers
+    function animateValue(elementId, start, end, duration = 600) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        const range = end - start;
+        let startTime = null;
+        
+        function step(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            element.textContent = Math.round(start + range * progress);
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            }
+        }
+        requestAnimationFrame(step);
+    }
+
+    // Check Web Speech API support
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        recordBtn.disabled = true;
+        recordBtn.innerHTML = '<span class="btn-icon">❌</span><span class="btn-text">Voice Not Supported</span>';
+        showToast('Speech recognition not supported in this browser', 'warning');
+    }
+
+    // Web Speech API implementation
+    recordBtn.onclick = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            showToast('Speech recognition not supported', 'error');
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        
+        recognition.lang = 'en-US';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        recordBtn.disabled = true;
+        recordBtn.innerHTML = '<span class="btn-icon">🎙️</span><span class="btn-text">Listening...</span>';
+        
+        recognition.start();
+        
+        recognition.onresult = (event) => {
+            transcript = event.results[0][0].transcript;
+            transcriptDisplay.innerHTML = transcript;
+            logBtn.disabled = false;
+            recordBtn.disabled = false;
+            recordBtn.innerHTML = '<span class="btn-icon">🎤</span><span class="btn-text">Start Recording</span>';
+        };
+        
+        recognition.onerror = (event) => {
+            showToast('Speech recognition error: ' + event.error, 'error');
+            recordBtn.disabled = false;
+            recordBtn.innerHTML = '<span class="btn-icon">🎤</span><span class="btn-text">Start Recording</span>';
+        };
+        
+        recognition.onend = () => {
+            recordBtn.disabled = false;
+            recordBtn.innerHTML = '<span class="btn-icon">🎤</span><span class="btn-text">Start Recording</span>';
+        };
+    };
+
+    // Log meal function
+    function logMeal(text) {
+        if (!text.trim()) {
+            showToast('Please provide meal information', 'warning');
+            return;
+        }
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        fetch('/api/voice-log/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({text: text})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.logged) {
+                showToast('Logged: ' + data.logged.map(f => f.food).join(', '), 'success');
+                fetchSummary();
+                fetchMeals();
+                // Clear inputs
+                transcript = '';
+                transcriptDisplay.innerHTML = '<span class="placeholder-text">Say your meal... (e.g., "2 boiled eggs and 100g oats")</span>';
+                manualInput.value = '';
+                logBtn.disabled = true;
+            } else {
+                showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Network error: ' + error.message, 'error');
+        });
+    }
+
+    // Voice log button
+    logBtn.onclick = () => {
+        logMeal(transcript);
+    };
+
+    // Manual log button
+    manualLogBtn.onclick = () => {
+        logMeal(manualInput.value);
+    };
+
+    // Manual input enter key
+    manualInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            logMeal(manualInput.value);
+        }
+    });
+
+    // Fetch daily summary
+    function fetchSummary() {
+        fetch('/api/get-daily-summary/')
+            .then(res => res.json())
+            .then(data => {
+                const currentCals = parseInt(document.getElementById('sum-cal').textContent) || 0;
+                const currentProtein = parseInt(document.getElementById('sum-protein').textContent) || 0;
+                const currentCarbs = parseInt(document.getElementById('sum-carbs').textContent) || 0;
+                const currentFat = parseInt(document.getElementById('sum-fat').textContent) || 0;
+                const currentFiber = parseInt(document.getElementById('sum-fiber').textContent) || 0;
+                const currentSugar = parseInt(document.getElementById('sum-sugar').textContent) || 0;
+                const currentSodium = parseInt(document.getElementById('sum-sodium').textContent) || 0;
+
+                animateValue('sum-cal', currentCals, Math.round(data.total_calories || 0));
+                animateValue('sum-protein', currentProtein, Math.round(data.total_protein || 0));
+                animateValue('sum-carbs', currentCarbs, Math.round(data.total_carbs || 0));
+                animateValue('sum-fat', currentFat, Math.round(data.total_fats || 0));
+                animateValue('sum-fiber', currentFiber, Math.round(data.total_fiber || 0));
+                animateValue('sum-sugar', currentSugar, Math.round(data.total_sugar || 0));
+                animateValue('sum-sodium', currentSodium, Math.round((data.total_sodium || 0) * 1000)); // Convert to mg
+            })
+            .catch(error => {
+                console.error('Error fetching summary:', error);
+            });
+    }
+
+    // Fetch daily meals
+    function fetchMeals() {
+        fetch('/api/get-daily-meals/')
+            .then(res => res.json())
+            .then(data => {
+                mealTbody.innerHTML = '';
+                const meals = data.meals || [];
+                
+                if (meals.length === 0) {
+                    document.getElementById('meal-table').style.display = 'none';
+                    noMealsMessage.style.display = 'block';
+                } else {
+                    document.getElementById('meal-table').style.display = 'table';
+                    noMealsMessage.style.display = 'none';
+                    
+                    meals.forEach(meal => {
+                        let sourceIcon = '🤖';
+                        let sourceTitle = 'AI Analysis';
+                        
+                        if (meal.source === 'Database') {
+                            sourceIcon = '📊';
+                            sourceTitle = 'Verified Database';
+                        }
+                        
+                        mealTbody.innerHTML += `
+                            <tr>
+                                <td><strong>${meal.food}</strong></td>
+                                <td>${meal.quantity}</td>
+                                <td>${meal.unit || '-'}</td>
+                                <td>${Math.round(meal.calories)}</td>
+                                <td>${Math.round(meal.protein)}</td>
+                                <td>${Math.round(meal.carbs)}</td>
+                                <td>${Math.round(meal.fat)}</td>
+                                <td>${Math.round(meal.fiber || 0)}</td>
+                                <td>${Math.round(meal.sugar || 0)}</td>
+                                <td>${Math.round((meal.sodium || 0) * 1000)}</td>
+                                <td><span title="${sourceTitle}" style="cursor: help;">${sourceIcon}</span></td>
+                                <td>
+                                    <button class="delete-btn" onclick="deleteMeal(${meal.id})">
+                                        🗑️ Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching meals:', error);
+            });
+    }
+
+    // Delete meal function
+    window.deleteMeal = function(mealId) {
+        if (!confirm('Are you sure you want to delete this meal?')) {
+            return;
+        }
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        fetch('/api/delete-meal/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({id: mealId})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Meal deleted', 'success');
+                fetchSummary();
+                fetchMeals();
+            } else {
+                showToast('Delete failed: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Network error: ' + error.message, 'error');
+        });
+    };
+
+    // Initial data fetch
+    fetchSummary();
+    fetchMeals();
+});
+</script>
+{% endblock %}

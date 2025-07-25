@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="workout-selection-container">
+  <header class="hero-section">
+    <h1>💪 Select Your Workout</h1>
+    <p class="hero-subtitle">Choose your fitness journey</p>
+  </header>
+  
+  <!-- Main Workout Options -->
+  <div class="main-options">
+    <!-- AI Fitness Trainer -->
+    <a href="{% url 'fitness_chat' %}" class="main-option-card ai-trainer">
+      <div class="card-icon">🤖</div>
+      <h2>AI Fitness Trainer</h2>
+      <p>Chat with our AI for personalized fitness advice, workout plans, and nutrition guidance</p>
+      <div class="feature-tags">
+        <span class="tag">✨ Personalized Plans</span>
+        <span class="tag">💪 Exercise Guidance</span>
+        <span class="tag">🥗 Nutrition Tips</span>
+      </div>
+    </a>
+    
+    <!-- Posture Correction Workouts -->
+    <div class="main-option-card posture-workouts">
+      <div class="card-icon">🎯</div>
+      <h2>Posture Correction Workouts</h2>
+      <p>Real-time pose detection and rep counting with form feedback</p>
+      
+      <div class="workout-grid">
+        {% for workout in workouts %}
+          <a href="{% url 'workout_page' workout.slug %}" class="workout-option">
+            <span class="workout-name">{{ workout.name }}</span>
+            <span class="detection-badge">Posture Detection</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Modern Workout Selection - Fittr Inspired */
+.workout-selection-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Hero Section */
+.hero-section {
+    text-align: center;
+    margin-bottom: 50px;
+    padding: 40px 20px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-xl);
+    border: var(--border-glass);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-hero);
+    opacity: 0.05;
+    z-index: -1;
+}
+
+.hero-section h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 15px;
+    animation: gradient-shift 8s ease infinite;
+}
+
+.hero-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--text-gray-light);
+    margin: 0;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* Main Options Grid */
+.main-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.main-option-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(25px);
+    border-radius: var(--border-radius-xl);
+    padding: 35px;
+    border: var(--border-glass);
+    box-shadow: var(--shadow-glass);
+    transition: var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+}
+
+.main-option-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.main-option-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.main-option-card:hover::before {
+    opacity: 0.05;
+}
+
+/* AI Trainer Card */
+.ai-trainer {
+    background: linear-gradient(135deg, 
+        rgba(229, 62, 62, 0.1) 0%, 
+        rgba(253, 127, 40, 0.1) 100%
+    );
+}
+
+.ai-trainer:hover {
+    box-shadow: 0 25px 50px rgba(229, 62, 62, 0.3);
+}
+
+/* Posture Workouts Card */
+.posture-workouts {
+    background: linear-gradient(135deg, 
+        rgba(56, 161, 105, 0.1) 0%, 
+        rgba(49, 130, 206, 0.1) 100%
+    );
+}
+
+.posture-workouts:hover {
+    box-shadow: 0 25px 50px rgba(56, 161, 105, 0.3);
+}
+
+/* Card Content */
+.card-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
+    animation: float 3s ease-in-out infinite;
+}
+
+.main-option-card h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--text-white);
+    margin-bottom: 15px;
+    line-height: 1.2;
+}
+
+.main-option-card p {
+    color: var(--text-gray-light);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* Feature Tags */
+.feature-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.tag {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: var(--text-white);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition-fast);
+}
+
+.tag:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Workout Grid */
+.workout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.workout-option {
+    background: var(--bg-glass);
+    backdrop-filter: blur(15px);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    text-decoration: none;
+    color: var(--text-white);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition-smooth);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.workout-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--gradient-success);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.workout-option:hover {
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.workout-option:hover::before {
+    transform: scaleX(1);
+}
+
+.workout-name {
+    display: block;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-white);
+    margin-bottom: 10px;
+}
+
+.detection-badge {
+    background: var(--gradient-success);
+    color: var(--text-white);
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-options {
+        grid-template-columns: 1fr;
+        gap: 25px;
+    }
+    
+    .main-option-card {
+        padding: 25px;
+    }
+    
+    .workout-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .feature-tags {
+        justify-content: center;
+    }
+    
+    .card-icon {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .workout-selection-container {
+        padding: 15px;
+    }
+    
+    .hero-section {
+        padding: 30px 15px;
+        margin-bottom: 30px;
+    }
+    
+    .main-option-card {
+        padding: 20px;
+    }
+    
+    .main-option-card h2 {
+        font-size: var(--font-size-xl);
+    }
+}
+</style>
+{% endblock %}

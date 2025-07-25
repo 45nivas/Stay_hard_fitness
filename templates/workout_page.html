@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="workout-page-container">
+  <h2>{{ workout_name|title }}</h2>
+  <div class="workout-info">
+    <div class="tips-panel">
+      <h3>Form Tips:</h3>
+      <ul id="tips-list">
+        {% if workout_name == 'squats' %}
+          <li>Keep your back straight</li>
+          <li>Knees should not go past toes</li>
+          <li>Go down until thighs are parallel</li>
+          <li>Keep chest up and core engaged</li>
+        {% elif workout_name == 'pushups' %}
+          <li>Keep body in a straight line</li>
+          <li>Lower until chest nearly touches ground</li>
+          <li>Don't let hips sag</li>
+          <li>Control both up and down movement</li>
+        {% elif workout_name == 'bicep_curls' or workout_name == 'hammer_curls' %}
+          <li>Keep elbows stable at your sides</li>
+          <li>Control the weight on the way down</li>
+          <li>Full range of motion</li>
+          <li>Don't swing your body</li>
+        {% elif workout_name == 'side_raises' %}
+          <li>Raise arms to shoulder level</li>
+          <li>Slight bend in elbows</li>
+          <li>Control the descent</li>
+          <li>Don't use momentum</li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  <div class="video-container">
+    <img id="video-stream" src="{% url 'video_feed' workout_name %}" alt="Video stream" />
+    <div class="workout-stats">
+      <div class="stat-item">
+        <span class="stat-label">Reps:</span>
+        <span class="stat-value" id="rep-counter">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Stage:</span>
+        <span class="stat-value" id="stage-indicator">Ready</span>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="voice-toggle" class="btn">🔊 Voice ON</button>
+    <a href="{% url 'workout_selection' %}" class="back-link">Back to selection</a>
+  </div>
+</div>
+<script>
+let voiceEnabled = true;
+document.getElementById('voice-toggle').addEventListener('click', function() {
+  voiceEnabled = !voiceEnabled;
+  this.textContent = voiceEnabled ? '🔊 Voice ON' : '🔇 Voice OFF';
+  this.style.background = voiceEnabled ? '#ffb300' : '#666';
+});
+
+// Auto-refresh stats from video overlay (the rep counting is handled by the backend)
+setInterval(function() {
+  // Stats are displayed in the video overlay, this is just for UI enhancement
+}, 1000);
+</script>
+{% endblock %}

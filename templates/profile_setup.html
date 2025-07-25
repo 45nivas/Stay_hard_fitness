@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="profile-container">
+  <div class="profile-header">
+    <h1>🎯 Your Fitness Profile</h1>
+    <p class="subtitle">Tell us about yourself to get a personalized AI workout plan</p>
+  </div>
+  
+  <form method="post" class="profile-form">
+    {% csrf_token %}
+    
+    <!-- Personal Information -->
+    <div class="form-section">
+      <h3>📋 Personal Information</h3>
+      
+      <div class="form-row">
+        <div class="form-field">
+          <label for="{{ form.age.id_for_label }}">Age</label>
+          {{ form.age }}
+          {% if form.age.errors %}
+            <div class="error">{{ form.age.errors.0 }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-field">
+          <label for="{{ form.gender.id_for_label }}">Gender</label>
+          {{ form.gender }}
+          {% if form.gender.errors %}
+            <div class="error">{{ form.gender.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-field">
+          <label for="{{ form.height.id_for_label }}">Height (cm)</label>
+          {{ form.height }}
+          {% if form.height.errors %}
+            <div class="error">{{ form.height.errors.0 }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-field">
+          <label for="{{ form.weight.id_for_label }}">Weight (kg)</label>
+          {{ form.weight }}
+          {% if form.weight.errors %}
+            <div class="error">{{ form.weight.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Fitness Goals -->
+    <div class="form-section">
+      <h3>🎯 Fitness Goals</h3>
+      
+      <div class="form-row">
+        <div class="form-field">
+          <label for="{{ form.fitness_level.id_for_label }}">Fitness Level</label>
+          {{ form.fitness_level }}
+          {% if form.fitness_level.errors %}
+            <div class="error">{{ form.fitness_level.errors.0 }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-field">
+          <label for="{{ form.primary_goal.id_for_label }}">Primary Goal</label>
+          {{ form.primary_goal }}
+          {% if form.primary_goal.errors %}
+            <div class="error">{{ form.primary_goal.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="form-field">
+        <label for="{{ form.available_time.id_for_label }}">Available Workout Time per Day (minutes)</label>
+        {{ form.available_time }}
+        <small class="help-text">How many minutes can you dedicate to working out daily?</small>
+        {% if form.available_time.errors %}
+          <div class="error">{{ form.available_time.errors.0 }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="form-field">
+        <label for="{{ form.calories_per_day.id_for_label }}">Daily Calorie Intake (Optional)</label>
+        {{ form.calories_per_day }}
+        <small class="help-text">Leave empty for AI estimation based on your stats</small>
+        {% if form.calories_per_day.errors %}
+          <div class="error">{{ form.calories_per_day.errors.0 }}</div>
+        {% endif %}
+      </div>
+    </div>
+    
+    {% if profile and profile.id %}
+      <div class="current-stats">
+        <h3>📊 Current Stats</h3>
+        <div class="stats-grid">
+          <div class="stat">
+            <span class="label">BMI:</span>
+            <span class="value">{{ profile.bmi }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Category:</span>
+            <span class="value">{{ profile.bmi_category }}</span>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        {% if profile and profile.id %}
+          🔄 Update Profile & Generate Plan
+        {% else %}
+          🚀 Create Profile & Generate Plan
+        {% endif %}
+      </button>
+      
+      <a href="{% url 'workout_selection' %}" class="btn btn-secondary">
+        ← Back to Workouts
+      </a>
+    </div>
+  </form>
+</div>
+
+<style>
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.profile-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.form-section {
+  background: rgba(255,255,255,0.1);
+  padding: 1.5rem;
+  border-radius: 15px;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.form-section h3 {
+  margin: 0 0 1rem 0;
+  color: #FFD700;
+  font-size: 1.3rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.form-field input, .form-field select, .form-field textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+  outline: none;
+  border-color: #FFD700;
+  background: rgba(255,255,255,0.2);
+}
+
+.form-field input::placeholder {
+  color: rgba(255,255,255,0.6);
+}
+
+.help-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  color: #E0E0E0;
+}
+
+.error {
+  color: #FF6B6B;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.current-stats {
+  background: rgba(255,215,0,0.1);
+  padding: 1.5rem;
+  border-radius: 15px;
+  margin-bottom: 1.5rem;
+  border: 2px solid rgba(255,215,0,0.3);
+}
+
+.current-stats h3 {
+  margin: 0 0 1rem 0;
+  color: #FFD700;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+
+.stat .label {
+  font-weight: 600;
+}
+
+.stat .value {
+  color: #FFD700;
+  font-weight: bold;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.btn {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  color: #1e3c72;
+  box-shadow: 0 8px 20px rgba(255,215,0,0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(255,215,0,0.4);
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-container {
+    padding: 1rem;
+    margin: 1rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+}
+</style>
+{% endblock %}

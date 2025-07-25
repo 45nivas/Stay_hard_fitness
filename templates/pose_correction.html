@@ -1,0 +1,564 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="pose-correction-page">
+  <header class="pose-hero-section">
+    <h1>🎯 Pose Correction Workouts</h1>
+    <p class="hero-subtitle">AI-powered real-time form analysis and rep counting</p>
+    <div class="hero-features">
+      <div class="hero-feature">
+        <span class="feature-icon">🤖</span>
+        <span>AI Pose Detection</span>
+      </div>
+      <div class="hero-feature">
+        <span class="feature-icon">📊</span>
+        <span>Form Analysis</span>
+      </div>
+      <div class="hero-feature">
+        <span class="feature-icon">🔔</span>
+        <span>Real-time Feedback</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="workout-grid-section">
+    <h2>💪 Available Pose Correction Exercises</h2>
+    
+    {% if pose_exercises %}
+      <div class="pose-workout-grid">
+        {% for exercise_key, exercise in pose_exercises.items %}
+          <a href="{% url 'workout_page' exercise_key %}" class="pose-workout-card">
+            <div class="workout-header">
+              <div class="workout-icon">
+                {% if exercise.name == 'Squats' %}🦵
+                {% elif exercise.name == 'Push-ups' %}💪
+                {% elif exercise.name == 'Bicep Curls' %}💪
+                {% elif exercise.name == 'Hammer Curls' %}🔨
+                {% elif exercise.name == 'Side Raises' %}🏋️
+                {% else %}💪
+                {% endif %}
+              </div>
+              <h3>{{ exercise.name }}</h3>
+              <span class="pose-badge">POSTURE DETECTION</span>
+            </div>
+            
+            <div class="workout-content">
+              <div class="muscle-info">
+                <span class="muscle-group">{{ exercise.muscle_group|title }}</span>
+                <div class="targets">
+                  {% for target in exercise.targets %}
+                    <span class="target-chip">{{ target|title }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="exercise-features">
+                <div class="feature-item">
+                  <span class="check-icon">✅</span>
+                  <span>Real-time form analysis</span>
+                </div>
+                <div class="feature-item">
+                  <span class="check-icon">✅</span>
+                  <span>Automatic rep counting</span>
+                </div>
+                <div class="feature-item">
+                  <span class="check-icon">✅</span>
+                  <span>Instant corrections</span>
+                </div>
+              </div>
+              
+              <div class="equipment-info">
+                {% if exercise.equipment %}
+                  <div class="equipment-needed">
+                    <strong>Equipment:</strong>
+                    {% for eq in exercise.equipment %}
+                      <span class="equipment-chip">{{ eq|title }}</span>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="no-equipment">
+                    <span class="equipment-icon">🏠</span>
+                    <span>No Equipment Needed</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="workout-footer">
+              <div class="start-workout-btn">
+                <span class="btn-icon">🎯</span>
+                <span>Start with AI Analysis</span>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="no-exercises-message">
+        <div class="empty-icon">😔</div>
+        <h3>No Pose Correction Exercises Available</h3>
+        <p>Pose correction exercises are currently being updated. Check back soon!</p>
+        <a href="{% url 'workout_selection' %}" class="back-btn">← Back to All Workouts</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="how-it-works-section">
+    <h2>🔬 How Pose Correction Works</h2>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h3>Camera Setup</h3>
+        <p>Allow camera access and position yourself in the frame</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h3>AI Analysis</h3>
+        <p>Our AI tracks your body position and movement in real-time</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h3>Get Feedback</h3>
+        <p>Receive instant corrections and rep counting</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <h3>Improve Form</h3>
+        <p>Perfect your technique with continuous guidance</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="navigation-footer">
+    <a href="{% url 'workout_selection' %}" class="nav-footer-btn secondary">
+      <span class="nav-icon">←</span>
+      <span>Back to All Workouts</span>
+    </a>
+    <a href="{% url 'posture_analysis' %}" class="nav-footer-btn primary">
+      <span class="nav-icon">📊</span>
+      <span>View Analysis History</span>
+    </a>
+  </div>
+</div>
+
+<style>
+.pose-correction-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Hero Section */
+.pose-hero-section {
+  text-align: center;
+  margin-bottom: 50px;
+  padding: 50px 30px;
+  background: linear-gradient(135deg, var(--primary-red), #ff4757);
+  border-radius: 20px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.pose-hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.pose-hero-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pose-hero-section h1 {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  font-weight: 800;
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+  opacity: 0.95;
+}
+
+.hero-features {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.hero-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+}
+
+.feature-icon {
+  font-size: 1.2rem;
+}
+
+/* Workout Grid Section */
+.workout-grid-section {
+  margin-bottom: 60px;
+}
+
+.workout-grid-section h2 {
+  text-align: center;
+  color: var(--primary-red);
+  font-size: 2.2rem;
+  margin-bottom: 40px;
+}
+
+.pose-workout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 25px;
+}
+
+.pose-workout-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.pose-workout-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(255, 71, 87, 0.2);
+  border-color: var(--primary-red);
+}
+
+.workout-header {
+  background: linear-gradient(135deg, #2c3e50, #34495e);
+  color: white;
+  padding: 25px;
+  text-align: center;
+  position: relative;
+}
+
+.workout-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.workout-header h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.pose-badge {
+  background: var(--primary-red);
+  color: white;
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.workout-content {
+  padding: 25px;
+}
+
+.muscle-info {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.muscle-group {
+  background: #e8f5e8;
+  color: #2d5a2d;
+  padding: 6px 15px;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.target-chip {
+  background: #f0f7ff;
+  color: #1565c0;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.exercise-features {
+  margin-bottom: 20px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.check-icon {
+  color: #2e7d32;
+  font-size: 1.1rem;
+}
+
+.equipment-info {
+  margin-bottom: 20px;
+}
+
+.equipment-needed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.equipment-chip {
+  background: #f3e5f5;
+  color: #7b1fa2;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.no-equipment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.equipment-icon {
+  font-size: 1.2rem;
+}
+
+.workout-footer {
+  padding: 0 25px 25px;
+}
+
+.start-workout-btn {
+  background: linear-gradient(135deg, var(--primary-red), #ff4757);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.pose-workout-card:hover .start-workout-btn {
+  background: linear-gradient(135deg, #e84118, #ff3742);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 1.2rem;
+}
+
+/* No Exercises Message */
+.no-exercises-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.no-exercises-message h3 {
+  color: var(--primary-red);
+  margin-bottom: 15px;
+}
+
+.back-btn {
+  background: var(--primary-red);
+  color: white;
+  padding: 12px 25px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 20px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: #e84118;
+  transform: translateY(-2px);
+}
+
+/* How It Works Section */
+.how-it-works-section {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 50px 30px;
+  border-radius: 20px;
+  margin-bottom: 50px;
+}
+
+.how-it-works-section h2 {
+  text-align: center;
+  color: var(--primary-red);
+  margin-bottom: 40px;
+  font-size: 2rem;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+}
+
+.step-card {
+  background: white;
+  padding: 30px 20px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.step-number {
+  width: 60px;
+  height: 60px;
+  background: var(--primary-red);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 auto 20px;
+}
+
+.step-card h3 {
+  color: var(--primary-red);
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.step-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Navigation Footer */
+.navigation-footer {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding-top: 30px;
+  border-top: 1px solid #eee;
+}
+
+.nav-footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 25px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.nav-footer-btn.primary {
+  background: var(--primary-red);
+  color: white;
+}
+
+.nav-footer-btn.primary:hover {
+  background: #e84118;
+  transform: translateY(-2px);
+}
+
+.nav-footer-btn.secondary {
+  background: #f8f9fa;
+  color: var(--text-secondary);
+  border: 2px solid #dee2e6;
+}
+
+.nav-footer-btn.secondary:hover {
+  background: #e9ecef;
+  border-color: var(--primary-red);
+  color: var(--primary-red);
+}
+
+.nav-icon {
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pose-hero-section h1 {
+    font-size: 2.2rem;
+  }
+  
+  .hero-features {
+    gap: 15px;
+  }
+  
+  .hero-feature {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+  }
+  
+  .pose-workout-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .navigation-footer {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .nav-footer-btn {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+}
+</style>
+
+{% endblock %}

@@ -116,3 +116,63 @@ class ChatMessage(models.Model):
     
     def __str__(self):
         return f"Message from {self.session.user.username} at {self.timestamp}"
+
+
+# Calorie Tracking Models
+class FoodItem(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    calories_per_100g = models.FloatField()
+    protein = models.FloatField()
+    carbs = models.FloatField()
+    fat = models.FloatField()
+    fiber = models.FloatField(default=0)
+    sugar = models.FloatField(default=0)
+    sodium = models.FloatField(default=0)  # in grams
+
+    def __str__(self):
+        return self.name
+
+
+class MealLog(models.Model):
+    MEAL_TYPE_CHOICES = [
+        ('breakfast', 'Breakfast'),
+        ('lunch', 'Lunch'),
+        ('dinner', 'Dinner'),
+        ('snack', 'Snack'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    food_item = models.ForeignKey(FoodItem, on_delete=models.CASCADE)
+    quantity = models.FloatField()
+    unit = models.CharField(max_length=32, blank=True, default="")
+    meal_type = models.CharField(max_length=20, choices=MEAL_TYPE_CHOICES, default='snack')
+    calories = models.FloatField(default=0)
+    protein = models.FloatField(default=0)
+    carbs = models.FloatField(default=0)
+    fat = models.FloatField(default=0)
+    fiber = models.FloatField(default=0)
+    sugar = models.FloatField(default=0)
+    sodium = models.FloatField(default=0)
+    source = models.CharField(max_length=20, default='AI')  # 'AI' or 'USDA'
+    date = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.quantity} of {self.food_item.name} on {self.date} by {self.user.username}"
+
+
+class DailySummary(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    total_calories = models.PositiveIntegerField(default=0)
+    total_protein = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_carbohydrates = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_fats = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_fiber = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_sugar = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_sodium = models.DecimalField(max_digits=10, decimal_places=3, default=0)
+
+    class Meta:
+        unique_together = ['user', 'date']
+
+    def __str__(self):
+        return f"Summary for {self.user.username} on {self.date}"

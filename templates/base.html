@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}FitPro Gym - Professional Fitness Solutions{% endblock %}</title>
+  <title>{% block title %}Stay Hard Fitness - Professional Fitness Solutions{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=2025072501">
 </head>
 <body>
   <!-- Professional Navigation -->
   <nav class="main-nav">
     <div class="nav-container">
       <div class="nav-brand">
-        <h1>🏋️ FitPro Gym</h1>
+        <h1>🏋️ Stay Hard Fitness</h1>
         <span class="brand-tagline">Professional Fitness Solutions</span>
       </div>
       
@@ -23,6 +23,10 @@
         <a href="{% url 'workout_selection' %}" class="nav-link">
           <span class="nav-icon">💪</span>
           Workouts
+        </a>
+        <a href="{% url 'pose_correction' %}" class="nav-link">
+          <span class="nav-icon">🎯</span>
+          Pose Correction
         </a>
         <a href="{% url 'fitness_chat' %}" class="nav-link">
           <span class="nav-icon">🤖</span>
@@ -64,11 +68,11 @@
   <!-- Footer -->
   <footer class="main-footer">
     <div class="footer-content">
-      <p>&copy; 2024 FitPro Gym. Professional fitness solutions with AI-powered training.</p>
+      <p>&copy; 2024 Stay Hard Fitness. Professional fitness solutions with AI-powered training.</p>
       <div class="footer-links">
-        <span>🏋️ Posture Correction</span>
-        <span>🤖 AI Training</span>
-        <span>📊 Progress Tracking</span>
+        <a href="{% url 'pose_correction' %}" class="footer-link">🏋️ Pose Correction</a>
+        <a href="{% url 'fitness_chat' %}" class="footer-link">🤖 AI Training</a>
+        <a href="{% url 'calorie_tracker' %}" class="footer-link">📊 Progress Tracking</a>
       </div>
     </div>
   </footer>
@@ -94,10 +98,20 @@
 }
 
 .nav-brand h1 {
-  color: var(--accent-white);
+  color: #ffffff !important;
   font-size: 1.8rem;
   font-weight: 700;
   margin: 0;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-clip: unset !important;
+  animation: none !important;
+  text-shadow: none !important;
+}
+
+.nav-brand h1::after {
+  display: none !important;
 }
 
 .brand-tagline {
@@ -233,6 +247,21 @@
   font-size: 0.9rem;
 }
 
+.footer-link {
+  color: var(--primary-red);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.footer-link:hover {
+  background: rgba(255, 71, 87, 0.1);
+  transform: translateY(-2px);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .nav-container {
@@ -281,5 +310,59 @@
   }
 }
 </style>
+
+<!-- Background Image Utility Script -->
+<script>
+// Function to change background image dynamically
+function changeBackgroundImage(imageUrl, blendMode = 'overlay') {
+    const body = document.body;
+    
+    if (imageUrl.startsWith('http')) {
+        // External image
+        body.style.backgroundImage = `var(--bg-primary), url('${imageUrl}')`;
+    } else {
+        // Local image
+        body.style.backgroundImage = `var(--bg-primary), url('/static/images/${imageUrl}')`;
+    }
+    
+    body.style.backgroundBlendMode = blendMode;
+    body.style.backgroundPosition = 'center center';
+    body.style.backgroundSize = 'cover';
+    body.style.backgroundRepeat = 'no-repeat';
+    body.style.backgroundAttachment = 'fixed';
+}
+
+// Function to apply predefined background themes
+function applyBackgroundTheme(theme) {
+    const body = document.body;
+    
+    // Remove existing background classes
+    body.className = body.className.replace(/bg-\S+/g, '');
+    
+    switch(theme) {
+        case 'modern':
+            body.classList.add('bg-gym-modern', 'bg-image-center', 'bg-blend-overlay');
+            break;
+        case 'classic':
+            body.classList.add('bg-gym-classic', 'bg-image-center', 'bg-blend-multiply');
+            break;
+        case 'motivation':
+            body.classList.add('bg-fitness-motivation', 'bg-image-center', 'bg-blend-soft-light');
+            break;
+        case 'external':
+            body.classList.add('bg-external-image', 'bg-image-center', 'bg-blend-overlay');
+            break;
+        default:
+            // Default gradient background
+            body.style.backgroundImage = 'var(--bg-primary)';
+    }
+}
+
+// Auto-apply external image theme on page load (Pinterest image)
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply the Pinterest image as background
+    applyBackgroundTheme('external');
+});
+</script>
 </body>
 </html>

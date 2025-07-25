@@ -19,22 +19,43 @@
         <span class="tag">🥗 Nutrition Tips</span>
       </div>
     </a>
+
+    <!-- One Rep Max Calculator -->
+    <a href="{% url 'one_rep_max' %}" class="main-option-card orm-calculator">
+      <div class="card-icon">🏋️</div>
+      <h2>One Rep Max Calculator</h2>
+      <p>Calculate your maximum strength potential and training zones for optimal results</p>
+      <div class="feature-tags">
+        <span class="tag">💪 Strength Testing</span>
+        <span class="tag">📊 Training Zones</span>
+        <span class="tag">🎯 Progress Tracking</span>
+      </div>
+    </a>
+
+    <!-- Voice Calorie Tracker -->
+    <a href="{% url 'calorie_tracker' %}" class="main-option-card calorie-tracker">
+      <div class="card-icon">🍎</div>
+      <h2>Voice Calorie Tracker</h2>
+      <p>Log meals with voice recognition and get instant AI-powered nutrition analysis</p>
+      <div class="feature-tags">
+        <span class="tag">🎤 Voice Logging</span>
+        <span class="tag">🤖 AI Nutrition</span>
+        <span class="tag">📊 Daily Tracking</span>
+      </div>
+    </a>
     
-    <!-- Posture Correction Workouts -->
-    <div class="main-option-card posture-workouts">
+    <!-- Pose Correction Workouts -->
+    <a href="{% url 'pose_correction' %}" class="main-option-card posture-workouts">
       <div class="card-icon">🎯</div>
-      <h2>Posture Correction Workouts</h2>
+      <h2>Pose Correction Workouts</h2>
       <p>Real-time pose detection and rep counting with form feedback</p>
       
-      <div class="workout-grid">
-        {% for workout in workouts %}
-          <a href="{% url 'workout_page' workout.slug %}" class="workout-option">
-            <span class="workout-name">{{ workout.name }}</span>
-            <span class="detection-badge">Posture Detection</span>
-          </a>
-        {% endfor %}
+      <div class="feature-tags">
+        <span class="tag">📹 Pose Detection</span>
+        <span class="tag">📊 Form Analysis</span>
+        <span class="tag">🔄 Real-time Feedback</span>
       </div>
-    </div>
+    </a>
   </div>
 </div>
 
@@ -93,7 +114,7 @@
 /* Main Options Grid */
 .main-options {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 30px;
     margin-bottom: 40px;
 }
@@ -147,6 +168,18 @@
     box-shadow: 0 25px 50px rgba(229, 62, 62, 0.3);
 }
 
+/* ORM Calculator Card */
+.orm-calculator {
+    background: linear-gradient(135deg, 
+        rgba(147, 51, 234, 0.1) 0%, 
+        rgba(219, 39, 119, 0.1) 100%
+    );
+}
+
+.orm-calculator:hover {
+    box-shadow: 0 25px 50px rgba(147, 51, 234, 0.3);
+}
+
 /* Posture Workouts Card */
 .posture-workouts {
     background: linear-gradient(135deg, 
@@ -157,6 +190,50 @@
 
 .posture-workouts:hover {
     box-shadow: 0 25px 50px rgba(56, 161, 105, 0.3);
+}
+
+/* Expand Workouts Button */
+.expand-workouts-btn {
+    background: linear-gradient(135deg, #38a169, #319795);
+    border: none;
+    border-radius: var(--border-radius-lg);
+    padding: 12px 24px;
+    color: white;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    width: 100%;
+}
+
+.expand-workouts-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(56, 161, 105, 0.3);
+}
+
+.expand-workouts-btn .btn-icon {
+    transition: transform 0.3s ease;
+}
+
+.expand-workouts-btn.expanded .btn-icon {
+    transform: rotate(180deg);
+}
+
+/* Calorie Tracker Card */
+.calorie-tracker {
+    background: linear-gradient(135deg, 
+        rgba(22, 160, 133, 0.1) 0%, 
+        rgba(39, 174, 96, 0.1) 100%
+    );
+}
+
+.calorie-tracker:hover {
+    box-shadow: 0 25px 50px rgba(22, 160, 133, 0.3);
 }
 
 /* Card Content */
@@ -213,6 +290,15 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
     margin-top: 25px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.5s ease;
+}
+
+.workout-grid.show {
+    opacity: 1;
+    max-height: 500px;
 }
 
 .workout-option {
@@ -227,6 +313,10 @@
     text-align: center;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
 .workout-option::before {
@@ -251,6 +341,12 @@
     transform: scaleX(1);
 }
 
+.workout-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
 .workout-name {
     display: block;
     font-size: var(--font-size-lg);
@@ -271,6 +367,13 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+    .main-options {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+    }
+}
+
 @media (max-width: 768px) {
     .main-options {
         grid-template-columns: 1fr;

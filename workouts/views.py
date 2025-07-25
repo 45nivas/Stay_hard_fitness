@@ -689,12 +689,45 @@ def delete_meal(request):
 @login_required
 def pose_correction(request):
     """Pose correction center with all exercises that support pose analysis"""
-    from .workout_planner import get_exercise_database
     
-    # Get all exercises and filter those with pose correction
-    all_exercises = get_exercise_database()
-    pose_exercises = {key: exercise for key, exercise in all_exercises.items() 
-                     if exercise.get('has_posture_check', False)}
+    # Available exercises with pose correction support
+    pose_exercises = {
+        'squats': {
+            'name': 'Squats',
+            'description': 'Lower body strength exercise with real-time form checking',
+            'difficulty': 'Beginner',
+            'muscles': ['Quadriceps', 'Glutes', 'Hamstrings'],
+            'has_posture_check': True
+        },
+        'pushups': {
+            'name': 'Push-ups', 
+            'description': 'Upper body strength exercise with form analysis',
+            'difficulty': 'Beginner',
+            'muscles': ['Chest', 'Shoulders', 'Triceps'],
+            'has_posture_check': True
+        },
+        'bicep_curls': {
+            'name': 'Bicep Curls',
+            'description': 'Arm isolation exercise with rep counting',
+            'difficulty': 'Beginner', 
+            'muscles': ['Biceps', 'Forearms'],
+            'has_posture_check': True
+        },
+        'hammer_curls': {
+            'name': 'Hammer Curls',
+            'description': 'Arm exercise targeting different bicep muscles',
+            'difficulty': 'Beginner',
+            'muscles': ['Biceps', 'Forearms'],
+            'has_posture_check': True
+        },
+        'side_raises': {
+            'name': 'Side Raises',
+            'description': 'Shoulder isolation exercise with form guidance',
+            'difficulty': 'Beginner',
+            'muscles': ['Shoulders', 'Deltoids'],
+            'has_posture_check': True
+        }
+    }
     
     return render(request, 'pose_correction.html', {'pose_exercises': pose_exercises})
 

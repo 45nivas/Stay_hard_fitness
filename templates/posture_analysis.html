@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="posture-analysis-container">
+  <h2>📊 Posture Analysis History</h2>
+  
+  {% if analyses %}
+    <div class="analysis-grid">
+      {% for analysis in analyses %}
+        <div class="analysis-card">
+          <div class="analysis-header">
+            <h3>{{ analysis.exercise_name }}</h3>
+            <div class="score-badge score-{{ analysis.posture_score|floatformat:0 }}">
+              {{ analysis.posture_score|floatformat:0 }}%
+            </div>
+          </div>
+          
+          <div class="analysis-content">
+            <div class="date">{{ analysis.analysis_date|date:"M d, Y H:i" }}</div>
+            <div class="feedback">{{ analysis.feedback }}</div>
+            
+            <div class="improvement-tips">
+              <strong>Improvement Tips:</strong>
+              <ul>
+                {% for tip in analysis.improvement_tips %}
+                  <li>{{ tip }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="no-data">
+      <p>No posture analysis data yet. Start doing exercises with posture checking to see your progress!</p>
+      <a href="{% url 'workout_selection' %}" class="btn">Start Workouts</a>
+    </div>
+  {% endif %}
+  
+  <div class="action-buttons">
+    <a href="{% url 'workout_recommendations' %}" class="btn">View Recommendations</a>
+    <a href="{% url 'workout_selection' %}" class="btn btn-secondary">Back to Workouts</a>
+  </div>
+</div>
+{% endblock %}

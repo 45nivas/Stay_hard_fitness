@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FitPro Gym - Professional Fitness Solutions{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Professional Navigation -->
+  <nav class="main-nav">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <h1>🏋️ FitPro Gym</h1>
+        <span class="brand-tagline">Professional Fitness Solutions</span>
+      </div>
+      
+      {% if user.is_authenticated %}
+      <div class="nav-menu">
+        <a href="{% url 'workout_selection' %}" class="nav-link">
+          <span class="nav-icon">💪</span>
+          Workouts
+        </a>
+        <a href="{% url 'fitness_chat' %}" class="nav-link">
+          <span class="nav-icon">🤖</span>
+          AI Trainer
+        </a>
+        <a href="{% url 'profile_setup' %}" class="nav-link">
+          <span class="nav-icon">👤</span>
+          Profile
+        </a>
+        <a href="{% url 'logout' %}" class="nav-link logout">
+          <span class="nav-icon">🚪</span>
+          Logout
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="content-wrapper">
+      {% if messages %}
+        <div class="messages-container">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+              <span class="alert-icon">
+                {% if message.tags == 'success' %}✅{% elif message.tags == 'error' %}❌{% elif message.tags == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+              </span>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="main-footer">
+    <div class="footer-content">
+      <p>&copy; 2024 FitPro Gym. Professional fitness solutions with AI-powered training.</p>
+      <div class="footer-links">
+        <span>🏋️ Posture Correction</span>
+        <span>🤖 AI Training</span>
+        <span>📊 Progress Tracking</span>
+      </div>
+    </div>
+  </footer>
+
+<style>
+/* Professional Navigation */
+.main-nav {
+  background: var(--primary-red);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 70px;
+}
+
+.nav-brand h1 {
+  color: var(--accent-white);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.brand-tagline {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.85rem;
+  font-weight: 400;
+  display: block;
+  margin-top: -5px;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.nav-link {
+  color: var(--accent-white);
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.nav-link:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--accent-white);
+}
+
+.nav-link.logout {
+  margin-left: 10px;
+  background: rgba(255,255,255,0.1);
+}
+
+.nav-link.logout:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.nav-icon {
+  font-size: 1.1rem;
+}
+
+/* Main Content */
+.main-content {
+  min-height: calc(100vh - 140px);
+  padding: 30px 20px;
+}
+
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Messages */
+.messages-container {
+  margin-bottom: 25px;
+}
+
+.alert {
+  padding: 15px 20px;
+  border-radius: var(--border-radius);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  box-shadow: var(--shadow);
+}
+
+.alert-success {
+  background: rgba(40, 167, 69, 0.1);
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.alert-error {
+  background: rgba(220, 53, 69, 0.1);
+  border-left: 4px solid var(--primary-red);
+  color: #721c24;
+}
+
+.alert-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border-left: 4px solid #ffc107;
+  color: #856404;
+}
+
+.alert-info {
+  background: rgba(0, 123, 255, 0.1);
+  border-left: 4px solid #007bff;
+  color: #004085;
+}
+
+.alert-icon {
+  font-size: 1.2rem;
+}
+
+/* Footer */
+.main-footer {
+  background: var(--background-card);
+  border-top: 3px solid var(--primary-red);
+  padding: 25px 20px;
+  margin-top: 40px;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.footer-content p {
+  color: var(--text-gray);
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.footer-links span {
+  color: var(--primary-red);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .nav-container {
+    flex-direction: column;
+    padding: 15px 20px;
+    gap: 15px;
+  }
+  
+  .nav-menu {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .nav-link {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+  
+  .nav-brand h1 {
+    font-size: 1.5rem;
+  }
+  
+  .brand-tagline {
+    font-size: 0.8rem;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .main-content {
+    padding: 20px 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-menu {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .nav-link {
+    justify-content: center;
+    width: 100%;
+  }
+}
+</style>
+</body>
+</html>

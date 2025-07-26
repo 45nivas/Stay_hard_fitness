@@ -194,16 +194,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **OpenCV Contributors** for computer vision tools
 - **Django Community** for the robust web framework
 
-## 📞 Support
-
-Having issues? We're here to help!
-
-- 📧 Email: support@stayhardness.com
-- 💬 Discord: [Join our community](https://discord.gg/stayhardness)
-- 🐛 Issues: [GitHub Issues](https://github.com/45nivas/Stay_hard_fitness/issues)
-
----
-
-**Stay Hard Fitness** - Where AI meets iron. Transform your workout experience with intelligent training technology.
-
-*Built with ❤️ for the fitness community*

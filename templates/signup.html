@@ -1,37 +1,211 @@
 {% extends 'base.html' %}
+{% block title %}Sign Up - Stay Hard Fitness{% endblock %}
 {% block content %}
-<div class="signup-container">
-  <h2>Create Account</h2>
-  {% if messages %}
-    {% for message in messages %}
-      <div class="message success">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-  <form method="post">
-    {% csrf_token %}
-    <div class="form-field">
-      <label for="{{ form.username.id_for_label }}">Username:</label>
-      {{ form.username }}
-      {% if form.username.errors %}
-        <div class="error">{{ form.username.errors.0 }}</div>
-      {% endif %}
+<div class="simple-signup-container">
+  <div class="simple-signup-card">
+    <div class="signup-header">
+      <h1>🏋️ Join Stay Hard Fitness</h1>
+      <p>Create your account</p>
     </div>
-    <div class="form-field">
-      <label for="{{ form.password1.id_for_label }}">Password:</label>
-      {{ form.password1 }}
-      {% if form.password1.errors %}
-        <div class="error">{{ form.password1.errors.0 }}</div>
-      {% endif %}
+    
+    {% if messages %}
+      {% for message in messages %}
+        <div class="simple-message">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    
+    <form method="post" class="simple-form">
+      {% csrf_token %}
+      
+      <div class="simple-field">
+        <label>Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="simple-error">{{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="simple-field">
+        <label>Password</label>
+        {{ form.password1 }}
+        {% if form.password1.errors %}
+          <div class="simple-error">{{ form.password1.errors.0 }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="simple-field">
+        <label>Confirm Password</label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+          <div class="simple-error">{{ form.password2.errors.0 }}</div>
+        {% endif %}
+      </div>
+      
+      <button type="submit" class="simple-btn">
+        Create Account
+      </button>
+    </form>
+    
+    <div class="signup-footer">
+      <a href="{% url 'login' %}">Already have an account? Sign in</a>
     </div>
-    <div class="form-field">
-      <label for="{{ form.password2.id_for_label }}">Confirm Password:</label>
-      {{ form.password2 }}
-      {% if form.password2.errors %}
-        <div class="error">{{ form.password2.errors.0 }}</div>
-      {% endif %}
-    </div>
-    <button type="submit" class="btn">Create Account</button>
-  </form>
-  <p class="auth-link">Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+  </div>
 </div>
+
+<style>
+/* Simple, Clean Signup Styles */
+.simple-signup-container {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #f8f9fa !important;
+}
+
+.simple-signup-card {
+  background: white !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #e9ecef;
+}
+
+.signup-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.signup-header h1 {
+  color: #dc3545 !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #dc3545 !important;
+  text-shadow: none !important;
+  animation: none !important;
+}
+
+.signup-header p {
+  color: #6c757d !important;
+  font-size: 16px !important;
+  margin: 0 !important;
+}
+
+.simple-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.simple-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.simple-field label {
+  color: #495057 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  margin-bottom: 5px !important;
+}
+
+.simple-field input {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  border: 2px solid #dee2e6 !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  color: #495057 !important;
+  background: white !important;
+  transition: border-color 0.3s ease !important;
+  box-sizing: border-box !important;
+}
+
+.simple-field input:focus {
+  outline: none !important;
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+}
+
+.simple-btn {
+  width: 100% !important;
+  padding: 14px 20px !important;
+  background: #dc3545 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease !important;
+  margin-top: 10px !important;
+}
+
+.simple-btn:hover {
+  background: #c82333 !important;
+}
+
+.signup-footer {
+  text-align: center;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.signup-footer a {
+  color: #dc3545 !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+}
+
+.signup-footer a:hover {
+  text-decoration: underline !important;
+}
+
+.simple-error {
+  color: #dc3545 !important;
+  font-size: 14px !important;
+  background: #f8d7da !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid #f5c6cb !important;
+}
+
+.simple-message {
+  color: #155724 !important;
+  font-size: 14px !important;
+  background: #d4edda !important;
+  padding: 12px 16px !important;
+  border-radius: 6px !important;
+  border: 1px solid #c3e6cb !important;
+  margin-bottom: 20px !important;
+  text-align: center !important;
+}
+
+/* Force override any complex background styles */
+body {
+  background: #f8f9fa !important;
+  background-image: none !important;
+  background-blend-mode: normal !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .simple-signup-card {
+    padding: 30px 20px;
+    margin: 20px;
+  }
+  
+  .signup-header h1 {
+    font-size: 20px !important;
+  }
+}
+</style>
 {% endblock %}

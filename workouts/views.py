@@ -13,6 +13,11 @@ from .forms import UserProfileForm, ChatMessageForm
 from .fitness_chatbot import FitnessChatbot
 import json
 import uuid
+import os
+import requests
+from dotenv import load_dotenv
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 def home(request):
     if request.user.is_authenticated:
@@ -294,12 +299,7 @@ def one_rep_max_calculator(request):
 
 
 # Calorie Tracking Views - Simple but Accurate (No API Keys!)
-import requests
 import re
-import os
-from dotenv import load_dotenv
-from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
 from .models import FoodItem, MealLog, DailySummary
 
 # Load environment variables
@@ -402,7 +402,7 @@ Return ONLY a valid JSON array with this format:
 
 Examples:
 - "10 egg whites" → [{{"food": "egg whites", "quantity": 10, "unit": "pieces", "calories": 170, "protein": 36, "carbs": 2, "fat": 0.5, "fiber": 0, "sugar": 2, "sodium": 0.55}}]
-- "100g oats" → [{{"food": "oats", "quantity": 100, "unit": "g", "calories": 389, "protein": 16.9, "carbs": 66.3, "fat": 6.9, "fiber": 10.6, "sugar": 1, "sodium": 0.002}}]
+- "100g oats" → [{{"food": "oats", "quantity": 100, "unit": "g", "calories": 389, "protein": 16.9, "carbs": 66.3, "fat": 6.9, "fiber": 10.6, "sugar": 0.99, "sodium": 0.002}}]
 
 Be as accurate as ChatGPT with nutrition data!"""
 
@@ -738,3 +738,149 @@ def posture_analysis(request):
     # For now, returning empty context
     analyses = []  # This would contain actual PostureAnalysis objects
     return render(request, 'posture_analysis.html', {'analyses': analyses})
+
+import os
+import json
+import requests
+from dotenv import load_dotenv
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+
+load_dotenv()
+
+# Gemini API Configuration
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+
+def smart_food_lookup_with_gemini(food_name, quantity, unit):
+    """Enhanced food lookup with Gemini API fallback for gym nutrition tracking"""
+    food_lower = food_name.lower().strip()
+    
+    # Step 1: Try exact database match (fastest for common gym foods)
+    if food_lower in NUTRITION_DATABASE:
+        nutrition = NUTRITION_DATABASE[food_lower].copy()
+        multiplier = get_quantity_multiplier(quantity, unit)
+        for key in ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar']:
+            if key in nutrition:
+                nutrition[key] = round(nutrition[key] * multiplier, 1)
+        return nutrition, "Database"
+    
+    # Step 2: Try fuzzy matching for similar foods
+    for db_food in NUTRITION_DATABASE.keys():
+        if food_lower in db_food or db_food in food_lower:
+            nutrition = NUTRITION_DATABASE[db_food].copy()
+            multiplier = get_quantity_multiplier(quantity, unit)
+            for key in ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar']:
+                if key in nutrition:
+                    nutrition[key] = round(nutrition[key] * multiplier, 1)
+            return nutrition, "Fuzzy Match"
+    
+    # Step 3: Use Gemini AI for unknown foods
+    return query_gemini_nutrition(food_name, quantity, unit), "Gemini AI"
+
+def query_gemini_nutrition(food_name, quantity, unit):
+    """Query Gemini API for nutrition information - perfect for fitness tracking"""
+    
+    if not GEMINI_API_KEY:
+        return get_generic_fallback(quantity, unit)
+    
+    prompt = f"""
+    You are a fitness nutrition expert. Calculate accurate nutrition information for: {quantity} {unit} of {food_name}
+
+    Provide ONLY a valid JSON response with these exact keys for gym nutrition tracking:
+    {{
+        "calories": <number>,
+        "protein": <number in grams>,
+        "carbs": <number in grams>,
+        "fat": <number in grams>,
+        "fiber": <number in grams>,
+        "sugar": <number in grams>
+    }}
+
+    Use USDA nutrition database standards. Focus on accuracy for fitness goals.
+    """
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
+    }
+    
+    try:
+        response = requests.post(
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            ai_text = data['candidates'][0]['content']['parts'][0]['text']
+            
+            # Clean JSON response
+            ai_text = ai_text.strip()
+            if ai_text.startswith('```json'):
+                ai_text = ai_text[7:-3]
+            elif ai_text.startswith('```'):
+                ai_text = ai_text[3:-3]
+            
+            nutrition_data = json.loads(ai_text)
+            return nutrition_data
+                
+        else:
+            return get_generic_fallback(quantity, unit)
+            
+    except Exception as e:
+        print(f"Gemini API error: {e}")
+        return get_generic_fallback(quantity, unit)
+
+def get_quantity_multiplier(quantity, unit):
+    """Convert quantity to multiplier for 100g base nutrition values"""
+    try:
+        qty = float(quantity)
+        
+        # Convert common gym food units to grams
+        unit_lower = unit.lower()
+        if unit_lower in ['g', 'grams', 'gram']:
+            return qty / 100
+        elif unit_lower in ['kg', 'kilograms', 'kilogram']:
+            return qty * 10  # 1kg = 1000g, so 1000/100 = 10
+        elif unit_lower in ['cup', 'cups']:
+            return qty * 2.4  # Average 240g per cup
+        elif unit_lower in ['slice', 'slices']:
+            return qty * 0.3  # Average 30g per slice
+        elif unit_lower in ['piece', 'pieces', 'pcs', 'whole']:
+            # Handle specific foods
+            if 'egg' in str(quantity).lower():
+                return qty * 0.5  # Average egg ~50g
+            else:
+                return qty * 1.0  # Default 100g per piece
+        elif unit_lower in ['tbsp', 'tablespoon', 'tablespoons']:
+            return qty * 0.15  # ~15g per tablespoon
+        elif unit_lower in ['tsp', 'teaspoon', 'teaspoons']:
+            return qty * 0.05  # ~5g per teaspoon
+        else:
+            return qty / 100  # Default: treat as grams
+            
+    except (ValueError, TypeError):
+        return 1.0  # Default multiplier
+
+def get_generic_fallback(quantity=1, unit="serving"):
+    """Generic fallback nutrition when Gemini API fails"""
+    base_nutrition = {
+        "calories": 150,
+        "protein": 5,
+        "carbs": 20,
+        "fat": 3,
+        "fiber": 2,
+        "sugar": 1
+    }
+    
+    multiplier = get_quantity_multiplier(quantity, unit)
+    for key in base_nutrition:
+        base_nutrition[key] = round(base_nutrition[key] * multiplier, 1)
+    
+    return base_nutrition

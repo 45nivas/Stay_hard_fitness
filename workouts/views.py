@@ -662,12 +662,12 @@ Be as accurate as ChatGPT with nutrition data!"""
                         db_data, source = smart_food_lookup(food_name, quantity, unit)
                         
                         print(f"DEBUG: Food={food_name}, Quantity={quantity}, Unit={unit}")
-                        print(f"DEBUG: Database lookup result - Source: {source}, Data: {db_data}")
+                        print(f"DEBUG: Database lookup result - Source: {source}")
                         
                         if db_data and source == "Database":
                             # Use our corrected database values - ALWAYS prioritize this!
                             multiplier = get_quantity_multiplier(quantity, unit)
-                            print(f"DEBUG: Using DATABASE - Multiplier={multiplier}")
+                            print(f"DEBUG: Using DATABASE - Multiplier={multiplier}, Final calories={round(db_data['calories'] * multiplier, 1)}")
                             
                             enhanced_food = {
                                 'food': food.get('food'),
@@ -682,7 +682,7 @@ Be as accurate as ChatGPT with nutrition data!"""
                                 'sodium': round(db_data['sodium'] * multiplier, 3),
                                 'source': 'Database'
                             }
-                            print(f"DEBUG: Database result: {enhanced_food}")
+                            print(f"DEBUG: Database result: {enhanced_food['food']} -> {enhanced_food['calories']} cal")
                         else:
                             # Use AI estimate only if database lookup fails
                             print(f"DEBUG: Using AI estimate for {food.get('food')}")
@@ -768,6 +768,51 @@ def parse_food_manually(text):
 def calorie_tracker(request):
     """Main calorie tracker page"""
     return render(request, 'calorie_tracker.html')
+
+
+@csrf_exempt
+@login_required  
+def recalculate_meals(request):
+    """Recalculate all meals with updated nutrition database - fixes oil calories"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=400)
+    
+    try:
+        # Get all meals for today
+        from django.utils import timezone
+        today = timezone.now().date()
+        meals = Meal.objects.filter(user=request.user, created_at__date=today)
+        
+        updated_count = 0
+        for meal in meals:
+            # Recalculate nutrition using current database
+            db_data, source = smart_food_lookup(meal.food_name, meal.quantity, meal.unit)
+            
+            if db_data and source == "Database":
+                # Recalculate with correct values
+                multiplier = get_quantity_multiplier(meal.quantity, meal.unit)
+                
+                meal.calories = round(db_data['calories'] * multiplier, 1)
+                meal.protein = round(db_data['protein'] * multiplier, 1)
+                meal.carbs = round(db_data['carbs'] * multiplier, 1)
+                meal.fat = round(db_data['fat'] * multiplier, 1)
+                meal.fiber = round(db_data['fiber'] * multiplier, 1)
+                meal.sugar = round(db_data['sugar'] * multiplier, 1)
+                meal.sodium = round(db_data['sodium'] * multiplier, 3)
+                meal.source = 'Database (Updated)'
+                
+                meal.save()
+                updated_count += 1
+                print(f"DEBUG: Updated {meal.food_name} - {meal.quantity}{meal.unit} -> {meal.calories} calories")
+        
+        return JsonResponse({
+            "success": True,
+            "message": f"Updated {updated_count} meals with corrected nutrition data",
+            "updated_count": updated_count
+        })
+        
+    except Exception as e:
+        return JsonResponse({"error": f"Error recalculating meals: {str(e)}"}, status=500)
 
 
 @csrf_exempt

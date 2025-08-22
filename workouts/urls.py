@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/get-daily-summary/', views.get_daily_summary, name='get_daily_summary'),
     path('api/get-daily-meals/', views.get_daily_meals, name='get_daily_meals'),
     path('api/delete-meal/', views.delete_meal, name='delete_meal'),
+    path('api/recalculate-meals/', views.recalculate_meals, name='recalculate_meals'),
     # Pose Correction URLs
     path('pose-correction/', views.pose_correction, name='pose_correction'),
     path('posture-analysis/', views.posture_analysis, name='posture_analysis'),

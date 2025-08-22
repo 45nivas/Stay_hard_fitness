@@ -52,11 +52,13 @@ class UserProfileForm(forms.ModelForm):
 
 class ChatMessageForm(forms.Form):
     message = forms.CharField(
-        widget=forms.TextInput(attrs={
+        widget=forms.Textarea(attrs={
             'class': 'form-control chat-input',
             'placeholder': 'Ask me anything about fitness, workouts, or nutrition...',
             'autocomplete': 'off',
-            'maxlength': '500'
+            'maxlength': '500',
+            'rows': '1',
+            'style': 'resize: none; overflow: hidden;'
         }),
         max_length=500,
         required=True

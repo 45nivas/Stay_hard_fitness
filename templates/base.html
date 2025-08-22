@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Stay Hard Fitness - Professional Fitness Solutions{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=2025072501">
+  <link rel="stylesheet" href="/static/style.css?v=2025082201">
 </head>
 <body>
-  <!-- Professional Navigation -->
+  <!-- Simple Professional Navigation -->
   <nav class="main-nav">
     <div class="nav-container">
       <div class="nav-brand">
@@ -20,26 +17,11 @@
       
       {% if user.is_authenticated %}
       <div class="nav-menu">
-        <a href="{% url 'workout_selection' %}" class="nav-link">
-          <span class="nav-icon">💪</span>
-          Workouts
-        </a>
-        <a href="{% url 'pose_correction' %}" class="nav-link">
-          <span class="nav-icon">🎯</span>
-          Pose Correction
-        </a>
-        <a href="{% url 'fitness_chat' %}" class="nav-link">
-          <span class="nav-icon">🤖</span>
-          AI Trainer
-        </a>
-        <a href="{% url 'profile_setup' %}" class="nav-link">
-          <span class="nav-icon">👤</span>
-          Profile
-        </a>
-        <a href="{% url 'logout' %}" class="nav-link logout">
-          <span class="nav-icon">🚪</span>
-          Logout
-        </a>
+        <a href="{% url 'workout_selection' %}" class="nav-link">Workouts</a>
+        <a href="{% url 'pose_correction' %}" class="nav-link">Pose Correction</a>
+        <a href="{% url 'fitness_chat' %}" class="nav-link">AI Trainer</a>
+        <a href="{% url 'profile_setup' %}" class="nav-link">Profile</a>
+        <a href="{% url 'logout' %}" class="nav-link logout">Logout</a>
       </div>
       {% endif %}
     </div>
@@ -52,9 +34,6 @@
         <div class="messages-container">
           {% for message in messages %}
             <div class="alert alert-{{ message.tags }}">
-              <span class="alert-icon">
-                {% if message.tags == 'success' %}✅{% elif message.tags == 'error' %}❌{% elif message.tags == 'warning' %}⚠️{% else %}ℹ️{% endif %}
-              </span>
               {{ message }}
             </div>
           {% endfor %}
@@ -70,299 +49,528 @@
     <div class="footer-content">
       <p>&copy; 2024 Stay Hard Fitness. Professional fitness solutions with AI-powered training.</p>
       <div class="footer-links">
-        <a href="{% url 'pose_correction' %}" class="footer-link">🏋️ Pose Correction</a>
-        <a href="{% url 'fitness_chat' %}" class="footer-link">🤖 AI Training</a>
-        <a href="{% url 'calorie_tracker' %}" class="footer-link">📊 Progress Tracking</a>
+        <a href="{% url 'pose_correction' %}" class="footer-link">Pose Correction</a>
+        <a href="{% url 'fitness_chat' %}" class="footer-link">AI Training</a>
+        <a href="{% url 'calorie_tracker' %}" class="footer-link">Progress Tracking</a>
       </div>
     </div>
   </footer>
 
 <style>
-/* Professional Navigation */
+/* Enhanced Professional Navigation */
 .main-nav {
-  background: var(--primary-red);
-  box-shadow: var(--shadow);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+    background: var(--gradient-hero);
+    box-shadow: var(--shadow-lg);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 3px solid var(--accent-color);
 }
 
 .nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 70px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 80px;
 }
 
 .nav-brand h1 {
-  color: #ffffff !important;
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 0;
-  background: none !important;
-  -webkit-background-clip: unset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  background-clip: unset !important;
-  animation: none !important;
-  text-shadow: none !important;
-}
-
-.nav-brand h1::after {
-  display: none !important;
+    color: var(--text-white) !important;
+    font-size: 1.75rem;
+    font-weight: var(--font-weight-black);
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .brand-tagline {
-  color: rgba(255,255,255,0.8);
-  font-size: 0.85rem;
-  font-weight: 400;
-  display: block;
-  margin-top: -5px;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-medium);
+    display: block;
+    margin-top: -2px;
+    letter-spacing: 0.5px;
 }
 
 .nav-menu {
-  display: flex;
-  gap: 5px;
-  align-items: center;
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .nav-link {
-  color: var(--accent-white);
-  text-decoration: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
+    color: var(--text-white);
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: var(--border-radius-lg);
+    font-weight: var(--font-weight-semibold);
+    transition: var(--transition);
+    font-size: 0.9rem;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+}
+
+.nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    transition: left 0.3s ease;
 }
 
 .nav-link:hover {
-  background: rgba(255,255,255,0.1);
-  color: var(--accent-white);
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-white);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.nav-link:hover::before {
+    left: 100%;
 }
 
 .nav-link.logout {
-  margin-left: 10px;
-  background: rgba(255,255,255,0.1);
+    background: rgba(229, 62, 62, 0.2);
+    margin-left: 15px;
+    border-color: var(--accent-color);
 }
 
 .nav-link.logout:hover {
-  background: rgba(255,255,255,0.2);
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: var(--shadow-md);
 }
 
-.nav-icon {
-  font-size: 1.1rem;
-}
-
-/* Main Content */
+/* Enhanced Main Content */
 .main-content {
-  min-height: calc(100vh - 140px);
-  padding: 30px 20px;
+    min-height: calc(100vh - 160px);
+    padding: 40px 0;
 }
 
 .content-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
-/* Messages */
+/* Enhanced Messages */
 .messages-container {
-  margin-bottom: 25px;
+    margin-bottom: 30px;
 }
 
 .alert {
-  padding: 15px 20px;
-  border-radius: var(--border-radius);
-  margin-bottom: 15px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 500;
-  box-shadow: var(--shadow);
+    padding: 18px 25px;
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 20px;
+    font-weight: var(--font-weight-semibold);
+    box-shadow: var(--shadow-md);
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.alert::before {
+    font-size: 1.2rem;
 }
 
 .alert-success {
-  background: rgba(40, 167, 69, 0.1);
-  border-left: 4px solid #28a745;
-  color: #155724;
+    background: rgba(56, 161, 105, 0.1);
+    border-left: 4px solid var(--success-color);
+    border-color: rgba(56, 161, 105, 0.2);
+    color: #2f855a;
+}
+
+.alert-success::before {
+    content: '✅';
 }
 
 .alert-error {
-  background: rgba(220, 53, 69, 0.1);
-  border-left: 4px solid var(--primary-red);
-  color: #721c24;
+    background: rgba(229, 62, 62, 0.1);
+    border-left: 4px solid var(--accent-color);
+    border-color: var(--border-accent);
+    color: #c53030;
+}
+
+.alert-error::before {
+    content: '❌';
 }
 
 .alert-warning {
-  background: rgba(255, 193, 7, 0.1);
-  border-left: 4px solid #ffc107;
-  color: #856404;
+    background: rgba(237, 137, 54, 0.1);
+    border-left: 4px solid var(--warning-color);
+    border-color: rgba(237, 137, 54, 0.2);
+    color: #c05621;
 }
 
-.alert-info {
-  background: rgba(0, 123, 255, 0.1);
-  border-left: 4px solid #007bff;
-  color: #004085;
+.alert-warning::before {
+    content: '⚠️';
 }
 
-.alert-icon {
-  font-size: 1.2rem;
-}
-
-/* Footer */
+/* Enhanced Footer */
 .main-footer {
-  background: var(--background-card);
-  border-top: 3px solid var(--primary-red);
-  padding: 25px 20px;
-  margin-top: 40px;
+    background: var(--gradient-hero);
+    border-top: 3px solid var(--accent-color);
+    padding: 30px 0;
+    margin-top: 60px;
+    color: var(--text-white);
 }
 
 .footer-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  text-align: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    text-align: center;
 }
 
 .footer-content p {
-  color: var(--text-gray);
-  margin-bottom: 15px;
-  font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 20px;
+    font-weight: var(--font-weight-medium);
+    font-size: 1rem;
 }
 
 .footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
-}
-
-.footer-links span {
-  color: var(--primary-red);
-  font-weight: 600;
-  font-size: 0.9rem;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
 }
 
 .footer-link {
-  color: var(--primary-red);
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  padding: 8px 12px;
-  border-radius: 6px;
+    color: var(--text-white);
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: var(--transition);
+    padding: 10px 16px;
+    border-radius: var(--border-radius-lg);
+    border: 2px solid transparent;
 }
 
 .footer-link:hover {
-  background: rgba(255, 71, 87, 0.1);
-  transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    color: var(--text-white);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .nav-container {
-    flex-direction: column;
-    padding: 15px 20px;
+/* Enhanced AI Trainer & Specialized Pages Styles */
+.ai-trainer-container,
+.calorie-tracker-container,
+.pose-correction-container,
+.one-rep-max-container {
+    background: var(--card-background);
+    border-radius: var(--border-radius-2xl);
+    padding: 40px;
+    margin: 30px auto;
+    max-width: 1000px;
+    box-shadow: var(--shadow-xl);
+    border: 2px solid var(--border-color);
+    position: relative;
+}
+
+.ai-trainer-container::before,
+.calorie-tracker-container::before,
+.pose-correction-container::before,
+.one-rep-max-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: var(--gradient-primary);
+    border-radius: var(--border-radius-2xl) var(--border-radius-2xl) 0 0;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: var(--background-alt);
+    border-radius: var(--border-radius-xl);
+    border: 2px solid var(--border-color);
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-weight: var(--font-weight-black);
+}
+
+.page-header p {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+/* Chat Interface Enhancements */
+.chat-container {
+    background: var(--card-background);
+    border-radius: var(--border-radius-xl);
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    max-height: 600px;
+    overflow-y: auto;
+    margin: 30px 0;
+}
+
+.chat-header {
+    background: var(--gradient-primary);
+    color: var(--text-white);
+    padding: 20px 25px;
+    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+    display: flex;
+    align-items: center;
     gap: 15px;
-  }
-  
-  .nav-menu {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  .nav-link {
-    font-size: 0.85rem;
-    padding: 8px 12px;
-  }
-  
-  .nav-brand h1 {
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-white);
+}
+
+.chat-header::before {
+    content: '🤖';
     font-size: 1.5rem;
-  }
-  
-  .brand-tagline {
-    font-size: 0.8rem;
-  }
-  
-  .footer-links {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .main-content {
-    padding: 20px 15px;
-  }
+}
+
+.chat-messages {
+    padding: 25px;
+    min-height: 400px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.message-bubble {
+    margin-bottom: 20px;
+    padding: 18px 22px;
+    border-radius: var(--border-radius-lg);
+    max-width: 80%;
+    box-shadow: var(--shadow-md);
+    position: relative;
+}
+
+.message-bubble.user {
+    background: var(--gradient-primary);
+    color: var(--text-white);
+    margin-left: auto;
+    border-bottom-right-radius: var(--border-radius-sm);
+}
+
+.message-bubble.ai {
+    background: var(--background-alt);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    border-bottom-left-radius: var(--border-radius-sm);
+}
+
+.chat-input-container {
+    padding: 20px 25px;
+    border-top: 2px solid var(--border-color);
+    background: var(--background-alt);
+    border-radius: 0 0 var(--border-radius-xl) var(--border-radius-xl);
+}
+
+.chat-input-form {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 14px 20px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    font-size: 1rem;
+    background: var(--card-background);
+    transition: var(--transition);
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
+.chat-send-btn {
+    padding: 14px 20px;
+    background: var(--gradient-primary);
+    color: var(--text-white);
+    border: none;
+    border-radius: var(--border-radius-lg);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.chat-send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Voice Controls Enhancement */
+.voice-controls {
+    background: var(--background-alt);
+    padding: 25px;
+    border-radius: var(--border-radius-xl);
+    border: 2px solid var(--border-color);
+    text-align: center;
+    margin: 30px 0;
+}
+
+.voice-btn {
+    background: var(--gradient-success);
+    color: var(--text-white);
+    border: none;
+    padding: 16px 32px;
+    border-radius: var(--border-radius-lg);
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-md);
+}
+
+.voice-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.voice-btn.recording {
+    background: var(--gradient-primary);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Calculator Enhancement */
+.calculator-container {
+    background: var(--card-background);
+    padding: 30px;
+    border-radius: var(--border-radius-xl);
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    margin: 30px 0;
+}
+
+.calculator-result {
+    background: var(--gradient-primary);
+    color: var(--text-white);
+    padding: 25px;
+    border-radius: var(--border-radius-lg);
+    text-align: center;
+    margin-top: 25px;
+    box-shadow: var(--shadow-md);
+}
+
+.calculator-result h3 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: var(--text-white);
+}
+
+/* Responsive Design Enhanced */
+@media (max-width: 768px) {
+    .nav-container {
+        flex-direction: column;
+        padding: 20px;
+        gap: 20px;
+    }
+    
+    .nav-menu {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .nav-link {
+        font-size: 0.85rem;
+        padding: 10px 16px;
+    }
+    
+    .nav-brand h1 {
+        font-size: 1.5rem;
+    }
+    
+    .brand-tagline {
+        font-size: 0.8rem;
+    }
+    
+    .footer-links {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .main-content {
+        padding: 30px 0;
+    }
+    
+    .ai-trainer-container,
+    .calorie-tracker-container,
+    .pose-correction-container,
+    .one-rep-max-container {
+        padding: 25px;
+        margin: 20px 10px;
+    }
+    
+    .page-header {
+        padding: 20px;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+    
+    .message-bubble {
+        max-width: 90%;
+    }
+    
+    .chat-input-form {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .chat-input {
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
-  .nav-menu {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .nav-link {
-    justify-content: center;
-    width: 100%;
-  }
+    .nav-menu {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .nav-link {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .calculator-result h3 {
+        font-size: 1.5rem;
+    }
 }
 </style>
-
-<!-- Background Image Utility Script -->
-<script>
-// Function to change background image dynamically
-function changeBackgroundImage(imageUrl, blendMode = 'overlay') {
-    const body = document.body;
-    
-    if (imageUrl.startsWith('http')) {
-        // External image
-        body.style.backgroundImage = `var(--bg-primary), url('${imageUrl}')`;
-    } else {
-        // Local image
-        body.style.backgroundImage = `var(--bg-primary), url('/static/images/${imageUrl}')`;
-    }
-    
-    body.style.backgroundBlendMode = blendMode;
-    body.style.backgroundPosition = 'center center';
-    body.style.backgroundSize = 'cover';
-    body.style.backgroundRepeat = 'no-repeat';
-    body.style.backgroundAttachment = 'fixed';
-}
-
-// Function to apply predefined background themes
-function applyBackgroundTheme(theme) {
-    const body = document.body;
-    
-    // Remove existing background classes
-    body.className = body.className.replace(/bg-\S+/g, '');
-    
-    switch(theme) {
-        case 'modern':
-            body.classList.add('bg-gym-modern', 'bg-image-center', 'bg-blend-overlay');
-            break;
-        case 'classic':
-            body.classList.add('bg-gym-classic', 'bg-image-center', 'bg-blend-multiply');
-            break;
-        case 'motivation':
-            body.classList.add('bg-fitness-motivation', 'bg-image-center', 'bg-blend-soft-light');
-            break;
-        case 'external':
-            body.classList.add('bg-external-image', 'bg-image-center', 'bg-blend-overlay');
-            break;
-        default:
-            // Default gradient background
-            body.style.backgroundImage = 'var(--bg-primary)';
-    }
-}
-
-// Auto-apply external image theme on page load (Pinterest image)
-document.addEventListener('DOMContentLoaded', function() {
-    // Apply the Pinterest image as background
-    applyBackgroundTheme('external');
-});
-</script>
 </body>
 </html>

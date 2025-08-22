@@ -228,11 +228,20 @@ def fitness_chat(request):
     else:
         form = ChatMessageForm()
     
-    # Get chat history
-    messages = session.messages.all()
+    # Professional chat approach - show limited recent messages or start fresh
+    show_history = request.GET.get('show_history', 'false') == 'true'
+    if show_history:
+        # Show recent messages when explicitly requested
+        messages = session.messages.all().order_by('-timestamp')[:5]
+    else:
+        # Start with a clean professional interface - no old history by default
+        messages = []
     
-    # No welcome message - straight to business
-    welcome_message = None
+    # Professional welcome message for new sessions
+    if not messages and not show_history:
+        welcome_message = "Hello! I'm your AI fitness trainer. I can help you with workout plans, nutrition advice, and fitness goals. How can I assist you today?"
+    else:
+        welcome_message = None
     
     context = {
         'form': form,
@@ -298,6 +307,122 @@ def one_rep_max_calculator(request):
     return render(request, 'one_rep_max.html')
 
 
+@login_required
+def carb_cycling_calculator(request):
+    """Carb cycling calculator with BMR-based calculations"""
+    result = None
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            age = int(request.POST.get('age', 0))
+            gender = request.POST.get('gender', 'male')
+            height = float(request.POST.get('height', 0))
+            weight = float(request.POST.get('weight', 0))
+            height_unit = request.POST.get('height_unit', 'cm')
+            weight_unit = request.POST.get('weight_unit', 'kg')
+            activity_level = request.POST.get('activity_level', 'moderate')
+            goal = request.POST.get('goal', 'maintenance')
+            training_days = int(request.POST.get('training_days', 3))
+            
+            # Convert units if needed
+            if height_unit == 'ft':
+                height = height * 30.48  # convert feet to cm
+            if weight_unit == 'lbs':
+                weight = weight * 0.453592  # convert lbs to kg
+            
+            # Calculate BMR using Mifflin-St Jeor formula
+            if gender == 'male':
+                bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+            else:
+                bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
+            
+            # Activity multipliers
+            activity_multipliers = {
+                'sedentary': 1.2,
+                'light': 1.375,
+                'moderate': 1.55,
+                'active': 1.725,
+                'very_active': 1.9
+            }
+            
+            # Calculate TDEE
+            tdee = bmr * activity_multipliers.get(activity_level, 1.55)
+            
+            # Adjust calories based on goal
+            if goal == 'fat_loss':
+                daily_calories = tdee * 0.85  # 15% deficit
+            elif goal == 'muscle_gain':
+                daily_calories = tdee * 1.1   # 10% surplus
+            else:  # maintenance
+                daily_calories = tdee
+            
+            # Calculate macros
+            protein_g = weight * 2.2  # 2.2g per kg
+            protein_calories = protein_g * 4
+            
+            fat_calories = daily_calories * 0.25  # 25% of calories
+            fat_g = fat_calories / 9
+            
+            remaining_calories = daily_calories - protein_calories - fat_calories
+            
+            # Carb cycling calculations (convert kg to lbs for carb calculations)
+            weight_lbs = weight * 2.20462
+            
+            # Calculate carb amounts for different days
+            high_carb_g = weight_lbs * 2.25  # 2.0-2.5g per lb
+            medium_carb_g = weight_lbs * 1.25  # 1.0-1.5g per lb
+            low_carb_g = weight_lbs * 0.5   # 0.5g per lb
+            
+            # Calculate calories for each day type
+            high_carb_calories = (protein_g * 4) + (fat_g * 9) + (high_carb_g * 4)
+            medium_carb_calories = (protein_g * 4) + (fat_g * 9) + (medium_carb_g * 4)
+            low_carb_calories = (protein_g * 4) + (fat_g * 9) + (low_carb_g * 4)
+            
+            # Create weekly schedule
+            weekly_schedule = []
+            days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            
+            # Assign carb days based on training days
+            for i, day in enumerate(days):
+                if i < training_days:
+                    if i < training_days // 2:
+                        carb_type = 'High'
+                    else:
+                        carb_type = 'Medium'
+                else:
+                    carb_type = 'Low'
+                
+                weekly_schedule.append({
+                    'day': day,
+                    'carb_type': carb_type,
+                    'carbs': high_carb_g if carb_type == 'High' else medium_carb_g if carb_type == 'Medium' else low_carb_g,
+                    'calories': high_carb_calories if carb_type == 'High' else medium_carb_calories if carb_type == 'Medium' else low_carb_calories
+                })
+            
+            result = {
+                'bmr': round(bmr),
+                'tdee': round(tdee),
+                'daily_calories': round(daily_calories),
+                'protein_g': round(protein_g, 1),
+                'fat_g': round(fat_g, 1),
+                'high_carb_g': round(high_carb_g, 1),
+                'medium_carb_g': round(medium_carb_g, 1),
+                'low_carb_g': round(low_carb_g, 1),
+                'high_carb_calories': round(high_carb_calories),
+                'medium_carb_calories': round(medium_carb_calories),
+                'low_carb_calories': round(low_carb_calories),
+                'weekly_schedule': weekly_schedule,
+                'weight_display': f"{weight:.1f} {weight_unit}",
+                'height_display': f"{height:.1f} {height_unit}"
+            }
+            
+        except (ValueError, TypeError) as e:
+            result = {'error': 'Please enter valid numbers for all fields.'}
+    
+    return render(request, 'carb_cycling.html', {'result': result})
+
+
 # Calorie Tracking Views - Simple but Accurate (No API Keys!)
 import re
 from .models import FoodItem, MealLog, DailySummary
@@ -305,7 +430,9 @@ from .models import FoodItem, MealLog, DailySummary
 # Load environment variables
 load_dotenv()
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
+# Gemini API Configuration
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 # Comprehensive nutrition database - ChatGPT-level accuracy (per 100g)
 NUTRITION_DATABASE = {
@@ -389,8 +516,13 @@ def smart_food_lookup(food_name, quantity, unit):
     
     return None, "AI"
 
-def query_ollama_for_foods(text):
-    """ChatGPT-style nutrition analysis using Ollama"""
+def query_gemini_for_foods(text):
+    """ChatGPT-style nutrition analysis using Gemini API"""
+    
+    if not GEMINI_API_KEY:
+        # Fallback to manual parsing if no API key
+        return parse_food_manually(text)
+    
     prompt = f"""You are a nutrition expert like ChatGPT. Analyze this food input: "{text}"
 
 Parse each food item and provide accurate nutrition data like ChatGPT would. Be very precise with quantities and nutrition values.
@@ -406,92 +538,146 @@ Examples:
 
 Be as accurate as ChatGPT with nutrition data!"""
 
+    headers = {'Content-Type': 'application/json'}
     payload = {
-        "model": "llama3.2",
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "temperature": 0.1,
-            "top_p": 0.9,
-            "num_ctx": 4096
-        }
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
     }
     
     try:
-        resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
-        resp.raise_for_status()
+        response = requests.post(
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
         
-        resp_json = resp.json()
-        response_text = resp_json.get("response", "")
-        
-        # Extract JSON array
-        match = re.search(r'\[.*\]', response_text, re.DOTALL)
-        if match:
-            foods = json.loads(match.group())
+        if response.status_code == 200:
+            data = response.json()
+            response_text = data['candidates'][0]['content']['parts'][0]['text']
             
-            # Validate and enhance with database lookup
-            enhanced_foods = []
-            for food in foods:
-                if isinstance(food, dict) and food.get('food'):
-                    # Try database lookup first
-                    db_data, source = smart_food_lookup(
-                        food.get('food', ''), 
-                        food.get('quantity', 100), 
-                        food.get('unit', 'g')
-                    )
-                    
-                    if db_data and source == "Database":
-                        # Scale database data to actual quantity
-                        quantity = float(food.get('quantity', 100))
+            # Extract JSON array
+            match = re.search(r'\[.*\]', response_text, re.DOTALL)
+            if match:
+                foods = json.loads(match.group())
+                
+                # Validate and enhance with database lookup
+                enhanced_foods = []
+                for food in foods:
+                    if isinstance(food, dict) and food.get('food'):
+                        # Try database lookup first
+                        db_data, source = smart_food_lookup(
+                            food.get('food', ''), 
+                            food.get('quantity', 100), 
+                            food.get('unit', 'g')
+                        )
                         
-                        # Determine scaling factor
-                        if 'piece' in food.get('unit', '').lower() or food.get('unit', '') == '':
-                            # For pieces (like eggs), assume ~50g each
-                            if 'egg' in food.get('food', '').lower():
-                                scale = (quantity * 33) / 100  # 1 egg white ≈ 33g
+                        if db_data and source == "Database":
+                            # Scale database data to actual quantity
+                            quantity = float(food.get('quantity', 100))
+                            
+                            # Determine scaling factor
+                            if 'piece' in food.get('unit', '').lower() or food.get('unit', '') == '':
+                                # For pieces (like eggs), assume ~50g each
+                                if 'egg' in food.get('food', '').lower():
+                                    scale = (quantity * 33) / 100  # 1 egg white ≈ 33g
+                                else:
+                                    scale = (quantity * 50) / 100  # Default piece weight
                             else:
-                                scale = (quantity * 50) / 100  # Default piece weight
+                                scale = quantity / 100  # For weight-based units
+                            
+                            enhanced_food = {
+                                'food': food.get('food'),
+                                'quantity': quantity,
+                                'unit': food.get('unit', 'g'),
+                                'calories': round(db_data['calories'] * scale, 1),
+                                'protein': round(db_data['protein'] * scale, 1),
+                                'carbs': round(db_data['carbs'] * scale, 1),
+                                'fat': round(db_data['fat'] * scale, 1),
+                                'fiber': round(db_data['fiber'] * scale, 1),
+                                'sugar': round(db_data['sugar'] * scale, 1),
+                                'sodium': round(db_data['sodium'] * scale, 3),
+                                'source': 'Database'
+                            }
                         else:
-                            scale = quantity / 100  # For weight-based units
+                            # Use AI estimate
+                            enhanced_food = {
+                                'food': str(food.get('food', '')),
+                                'quantity': float(food.get('quantity', 100)),
+                                'unit': str(food.get('unit', 'g')),
+                                'calories': float(food.get('calories', 0)),
+                                'protein': float(food.get('protein', 0)),
+                                'carbs': float(food.get('carbs', 0)),
+                                'fat': float(food.get('fat', 0)),
+                                'fiber': float(food.get('fiber', 0)),
+                                'sugar': float(food.get('sugar', 0)),
+                                'sodium': float(food.get('sodium', 0)),
+                                'source': 'Gemini AI'
+                            }
                         
-                        enhanced_food = {
-                            'food': food.get('food'),
-                            'quantity': quantity,
-                            'unit': food.get('unit', 'g'),
-                            'calories': round(db_data['calories'] * scale, 1),
-                            'protein': round(db_data['protein'] * scale, 1),
-                            'carbs': round(db_data['carbs'] * scale, 1),
-                            'fat': round(db_data['fat'] * scale, 1),
-                            'fiber': round(db_data['fiber'] * scale, 1),
-                            'sugar': round(db_data['sugar'] * scale, 1),
-                            'sodium': round(db_data['sodium'] * scale, 3),
-                            'source': 'Database'
-                        }
-                    else:
-                        # Use AI estimate
-                        enhanced_food = {
-                            'food': str(food.get('food', '')),
-                            'quantity': float(food.get('quantity', 100)),
-                            'unit': str(food.get('unit', 'g')),
-                            'calories': float(food.get('calories', 0)),
-                            'protein': float(food.get('protein', 0)),
-                            'carbs': float(food.get('carbs', 0)),
-                            'fat': float(food.get('fat', 0)),
-                            'fiber': float(food.get('fiber', 0)),
-                            'sugar': float(food.get('sugar', 0)),
-                            'sodium': float(food.get('sodium', 0)),
-                            'source': 'AI'
-                        }
-                    
-                    enhanced_foods.append(enhanced_food)
-            
-            return enhanced_foods
+                        enhanced_foods.append(enhanced_food)
+                
+                return enhanced_foods
+            else:
+                return parse_food_manually(text)
         else:
-            return []
+            return parse_food_manually(text)
             
     except Exception as e:
-        print("Ollama error:", e)
-        return []
+        print("Gemini API error:", e)
+        return parse_food_manually(text)
+
+def parse_food_manually(text):
+    """Manual food parsing fallback when APIs are unavailable"""
+    # Simple regex parsing for common patterns
+    import re
+    
+    # Pattern: number + unit + food
+    pattern = r'(\d+(?:\.\d+)?)\s*([a-zA-Z]*)\s+(.+?)(?:\s+and\s+|$|,)'
+    matches = re.findall(pattern, text)
+    
+    foods = []
+    if matches:
+        for match in matches:
+            quantity, unit, food_name = match
+            
+            # Try database lookup
+            db_data, source = smart_food_lookup(food_name.strip(), float(quantity), unit)
+            
+            if db_data:
+                food_item = {
+                    'food': food_name.strip(),
+                    'quantity': float(quantity),
+                    'unit': unit if unit else 'g',
+                    'calories': db_data.get('calories', 100),
+                    'protein': db_data.get('protein', 5),
+                    'carbs': db_data.get('carbs', 15),
+                    'fat': db_data.get('fat', 3),
+                    'fiber': db_data.get('fiber', 2),
+                    'sugar': db_data.get('sugar', 1),
+                    'sodium': db_data.get('sodium', 0.1),
+                    'source': 'Manual Parse'
+                }
+                foods.append(food_item)
+    
+    # If no matches, try simple fallback
+    if not foods:
+        foods = [{
+            'food': text,
+            'quantity': 1,
+            'unit': 'serving',
+            'calories': 150,
+            'protein': 5,
+            'carbs': 20,
+            'fat': 3,
+            'fiber': 2,
+            'sugar': 1,
+            'sodium': 0.2,
+            'source': 'Estimated'
+        }]
+    
+    return foods
 
 
 @login_required
@@ -518,7 +704,7 @@ def log_meal_from_voice(request):
 
     # Parse and get nutrition like ChatGPT
     try:
-        foods = query_ollama_for_foods(transcribed_text)
+        foods = query_gemini_for_foods(transcribed_text)
     except Exception as e:
         return JsonResponse({"error": f"Error analyzing food: {str(e)}"}, status=500)
     

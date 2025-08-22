@@ -12,7 +12,13 @@ except ImportError:
     MEDIAPIPE_AVAILABLE = False
     print("MediaPipe not available - pose detection will be disabled")
 import numpy as np
-from .rep_counter import RepCounter
+try:
+    from .rep_counter import RepCounter
+    REP_COUNTER_AVAILABLE = True
+except ImportError as e:
+    REP_COUNTER_AVAILABLE = False
+    print(f"RepCounter not available: {e}")
+    RepCounter = None
 from .models import UserProfile, ChatSession, ChatMessage
 from .forms import UserProfileForm, ChatMessageForm
 from .fitness_chatbot import FitnessChatbot
@@ -67,8 +73,11 @@ def gen_frames(workout_name):
         pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
         mp_drawing = mp.solutions.drawing_utils
         
-        # Initialize rep counter for specific workout
-        counter = RepCounter(workout_name)
+        # Initialize rep counter for specific workout (if available)
+        if REP_COUNTER_AVAILABLE:
+            counter = RepCounter(workout_name)
+        else:
+            counter = None
     else:
         # Fallback when MediaPipe is not available
         pose = None

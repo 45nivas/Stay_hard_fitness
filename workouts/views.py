@@ -650,46 +650,42 @@ Be as accurate as ChatGPT with nutrition data!"""
             if match:
                 foods = json.loads(match.group())
                 
-                # Validate and enhance with database lookup
+                # Validate and enhance with database lookup - DATABASE ALWAYS WINS
                 enhanced_foods = []
                 for food in foods:
                     if isinstance(food, dict) and food.get('food'):
-                        # Try database lookup first
-                        db_data, source = smart_food_lookup(
-                            food.get('food', ''), 
-                            food.get('quantity', 100), 
-                            food.get('unit', 'g')
-                        )
+                        food_name = food.get('food', '').lower().strip()
+                        quantity = float(food.get('quantity', 100))
+                        unit = food.get('unit', 'g')
+                        
+                        # PRIORITY 1: Check our database first (most accurate for common foods)
+                        db_data, source = smart_food_lookup(food_name, quantity, unit)
+                        
+                        print(f"DEBUG: Food={food_name}, Quantity={quantity}, Unit={unit}")
+                        print(f"DEBUG: Database lookup result - Source: {source}, Data: {db_data}")
                         
                         if db_data and source == "Database":
-                            # Scale database data to actual quantity
-                            quantity = float(food.get('quantity', 100))
-                            
-                            # Determine scaling factor
-                            if 'piece' in food.get('unit', '').lower() or food.get('unit', '') == '':
-                                # For pieces (like eggs), assume ~50g each
-                                if 'egg' in food.get('food', '').lower():
-                                    scale = (quantity * 33) / 100  # 1 egg white ≈ 33g
-                                else:
-                                    scale = (quantity * 50) / 100  # Default piece weight
-                            else:
-                                scale = quantity / 100  # For weight-based units
+                            # Use our corrected database values - ALWAYS prioritize this!
+                            multiplier = get_quantity_multiplier(quantity, unit)
+                            print(f"DEBUG: Using DATABASE - Multiplier={multiplier}")
                             
                             enhanced_food = {
                                 'food': food.get('food'),
                                 'quantity': quantity,
-                                'unit': food.get('unit', 'g'),
-                                'calories': round(db_data['calories'] * scale, 1),
-                                'protein': round(db_data['protein'] * scale, 1),
-                                'carbs': round(db_data['carbs'] * scale, 1),
-                                'fat': round(db_data['fat'] * scale, 1),
-                                'fiber': round(db_data['fiber'] * scale, 1),
-                                'sugar': round(db_data['sugar'] * scale, 1),
-                                'sodium': round(db_data['sodium'] * scale, 3),
+                                'unit': unit,
+                                'calories': round(db_data['calories'] * multiplier, 1),
+                                'protein': round(db_data['protein'] * multiplier, 1),
+                                'carbs': round(db_data['carbs'] * multiplier, 1),
+                                'fat': round(db_data['fat'] * multiplier, 1),
+                                'fiber': round(db_data['fiber'] * multiplier, 1),
+                                'sugar': round(db_data['sugar'] * multiplier, 1),
+                                'sodium': round(db_data['sodium'] * multiplier, 3),
                                 'source': 'Database'
                             }
+                            print(f"DEBUG: Database result: {enhanced_food}")
                         else:
-                            # Use AI estimate
+                            # Use AI estimate only if database lookup fails
+                            print(f"DEBUG: Using AI estimate for {food.get('food')}")
                             enhanced_food = {
                                 'food': str(food.get('food', '')),
                                 'quantity': float(food.get('quantity', 100)),

@@ -79,18 +79,15 @@ WSGI_APPLICATION = 'gym_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Use PostgreSQL on Render, SQLite locally
-if os.getenv('DATABASE_URL'):
+import dj_database_url
+
+# Use DATABASE_URL if provided (Render), otherwise SQLite
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
     # Production database (Render PostgreSQL)
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
+        'default': dj_database_url.parse(DATABASE_URL)
     }
 else:
     # Development database (SQLite)

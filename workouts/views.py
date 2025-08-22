@@ -5,6 +5,8 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 import cv2
+import time
+import numpy as np
 try:
     import mediapipe as mp
     MEDIAPIPE_AVAILABLE = True
@@ -68,6 +70,9 @@ def gen_frames(workout_name):
     # Initialize MediaPipe and rep counter
     cap = cv2.VideoCapture(0)
     
+    # Check if camera is available
+    camera_available = cap.isOpened()
+    
     if MEDIAPIPE_AVAILABLE:
         mp_pose = mp.solutions.pose
         pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
@@ -85,6 +90,52 @@ def gen_frames(workout_name):
         counter = None
     
     try:
+        # If no camera available, create a demo/placeholder frame
+        if not camera_available:
+            # Create a black placeholder frame with instructions
+            placeholder_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            
+            # Add gym-themed background color
+            placeholder_frame[:] = (45, 45, 65)  # Dark blue-gray
+            
+            # Add title
+            cv2.putText(placeholder_frame, 'STAY HARD FITNESS', 
+                       (120, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 3)
+            
+            # Add workout name
+            cv2.putText(placeholder_frame, f'{workout_name.replace("_", " ").title()} Demo', 
+                       (150, 120), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+            
+            # Add camera info
+            cv2.putText(placeholder_frame, 'Camera not available in cloud environment', 
+                       (80, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+            
+            # Add instructions
+            cv2.putText(placeholder_frame, 'For live pose detection:', 
+                       (160, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.putText(placeholder_frame, '1. Run locally with webcam', 
+                       (140, 290), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            cv2.putText(placeholder_frame, '2. Grant camera permissions', 
+                       (130, 320), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            cv2.putText(placeholder_frame, '3. Ensure good lighting', 
+                       (150, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            
+            # Add demo rep counter
+            cv2.putText(placeholder_frame, 'Demo Mode: Reps: 0', 
+                       (200, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            
+            # Add fitness emoji/icon
+            cv2.putText(placeholder_frame, '💪 🏃‍♂️ 🏋️‍♀️', 
+                       (250, 450), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 100, 100), 2)
+            
+            # Continuously yield the same placeholder frame
+            while True:
+                ret, buffer = cv2.imencode('.jpg', placeholder_frame)
+                frame = buffer.tobytes()
+                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                time.sleep(0.1)  # Small delay to prevent overwhelming the connection
+        
+        # Normal camera processing
         while True:
             success, frame = cap.read()
             if not success:

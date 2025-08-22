@@ -1,5 +1,5 @@
 """
-Fitness Chatbot using local LLM for personalized fitness guidance
+Fitness Chatbot using Gemini API for personalized fitness guidance
 Handles user queries about workouts, nutrition, and fitness goals
 """
 
@@ -14,7 +14,8 @@ load_dotenv()
 class FitnessChatbot:
     def __init__(self):
         self.user_data = {}
-        self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
+        self.gemini_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
     
     def calculate_daily_nutrition(self, user_profile_data):
         """Calculate proper daily nutrition for gym goals - FIXED VERSION"""
@@ -117,7 +118,7 @@ Available workouts with real-time pose correction:
 Provide specific, actionable fitness advice. Mention our pose detection features when relevant.
 Keep responses under 200 words and gym-focused."""
 
-        return self._query_ollama(prompt)
+        return self._query_gemini(prompt)
     
     def generate_general_response(self, message, user_profile_data):
         """Generate general fitness responses"""
@@ -136,28 +137,34 @@ Features available:
 Be encouraging, knowledgeable, and reference our app features when helpful.
 Keep responses under 150 words."""
 
-        return self._query_ollama(prompt)
+        return self._query_gemini(prompt)
     
-    def _query_ollama(self, prompt):
-        """Query Ollama LLM for fitness responses"""
+    def _query_gemini(self, prompt):
+        """Query Gemini API for fitness responses"""
+        if not self.gemini_api_key:
+            return "💪 Please configure your Gemini API key to get personalized fitness advice! I'm still here to help with calculations and tips."
+        
+        headers = {'Content-Type': 'application/json'}
         payload = {
-            "model": "llama3.2",
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "num_ctx": 2048
-            }
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
         }
         
         try:
-            response = requests.post(self.ollama_url, json=payload, timeout=30)
-            response.raise_for_status()
+            response = requests.post(
+                f"{self.gemini_url}?key={self.gemini_api_key}",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
             
-            response_json = response.json()
-            return response_json.get("response", "I'm here to help with your fitness goals! Ask me about workouts or nutrition.")
-            
+            if response.status_code == 200:
+                data = response.json()
+                return data['candidates'][0]['content']['parts'][0]['text']
+            else:
+                return "💪 I'm having trouble connecting right now, but I'm still here to support your fitness journey! Try asking about workouts or nutrition calculations."
+                
         except Exception as e:
             return "💪 I'm experiencing technical difficulties, but I'm still here to support your fitness journey! Try asking about workouts or nutrition."
     

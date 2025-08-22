@@ -16,6 +16,8 @@ urlpatterns = [
     path('clear-chat/', views.clear_chat_session, name='clear_chat_session'),
     # One Rep Max Calculator
     path('one-rep-max/', views.one_rep_max_calculator, name='one_rep_max'),
+    # Carb Cycling Calculator
+    path('carb-cycling/', views.carb_cycling_calculator, name='carb_cycling'),
     # Calorie Tracker URLs
     path('calorie-tracker/', views.calorie_tracker, name='calorie_tracker'),
     path('api/voice-log/', views.log_meal_from_voice, name='voice_log'),

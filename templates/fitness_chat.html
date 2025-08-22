@@ -1,43 +1,65 @@
 {% extends 'base.html' %}
 
-{% block title %}Stay Hard Fitness AI Trainer - Fitness Chat{% endblock %}
+{% block title %}AI Fitness Trainer - Stay Hard Fitness{% endblock %}
 
 {% block content %}
-<div class="chat-container">
+<div class="fitness-chat-page">
     <div class="chat-header">
-        <h2>🤖 Stay Hard Fitness AI Trainer</h2>
-        <p class="chat-subtitle">Your personal fitness assistant powered by AI</p>
-        <div class="chat-actions">
-            <a href="{% url 'profile_setup' %}" class="btn btn-secondary btn-sm">Update Profile</a>
-            <a href="{% url 'clear_chat_session' %}" class="btn btn-outline btn-sm">Clear Chat</a>
+        <div class="header-content">
+            <div class="trainer-avatar">
+                <span class="avatar-icon">🤖</span>
+            </div>
+            <div class="header-text">
+                <h1>AI Fitness Trainer</h1>
+                <p class="trainer-subtitle">Professional fitness guidance powered by AI</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'profile_setup' %}" class="btn btn-outline btn-sm">
+                <span class="btn-icon">⚙️</span>
+                Update Profile
+            </a>
+            {% if messages %}
+            <a href="?show_history=true" class="btn btn-outline btn-sm">
+                <span class="btn-icon">📝</span>
+                Show History
+            </a>
+            {% endif %}
+            <a href="{% url 'clear_chat_session' %}" class="btn btn-outline btn-sm">
+                <span class="btn-icon">🗑️</span>
+                Clear History
+            </a>
         </div>
     </div>
 
     <!-- User Profile Summary -->
     {% if user_data %}
-    <div class="profile-summary-card">
-        <h4>📊 Your Profile</h4>
-        <div class="profile-stats">
+    <div class="profile-summary">
+        <div class="summary-header">
+            <h3>Your Profile</h3>
+            <span class="profile-status">Active</span>
+        </div>
+        <div class="profile-grid">
             {% if user_data.height and user_data.weight %}
-                <div class="stat">
-                    <span class="label">Height:</span>
-                    <span class="value">{{ user_data.height }} cm</span>
+                <div class="profile-stat">
+                    <span class="stat-label">Height</span>
+                    <span class="stat-value">{{ user_data.height }} cm</span>
                 </div>
-                <div class="stat">
-                    <span class="label">Weight:</span>
-                    <span class="value">{{ user_data.weight }} kg</span>
+                <div class="profile-stat">
+                    <span class="stat-label">Weight</span>
+                    <span class="stat-value">{{ user_data.weight }} kg</span>
                 </div>
                 {% if user_data.bmi %}
-                <div class="stat">
-                    <span class="label">BMI:</span>
-                    <span class="value">{{ user_data.bmi }} ({{ user_data.bmi_category }})</span>
+                <div class="profile-stat">
+                    <span class="stat-label">BMI</span>
+                    <span class="stat-value">{{ user_data.bmi }} ({{ user_data.bmi_category }})</span>
                 </div>
                 {% endif %}
             {% endif %}
             {% if user_data.goals %}
-                <div class="stat full-width">
-                    <span class="label">Goals:</span>
-                    <span class="value">{{ user_data.goals|join:", " }}</span>
+                <div class="profile-stat full-width">
+                    <span class="stat-label">Goals</span>
+                    <span class="stat-value">{{ user_data.goals|join:", " }}</span>
                 </div>
             {% endif %}
         </div>
@@ -45,373 +67,178 @@
     {% endif %}
 
     <!-- Chat Messages -->
-    <div class="chat-messages" id="chatMessages">
-        {% if welcome_message %}
-        <div class="message bot-message">
-            <div class="message-avatar">🤖</div>
-            <div class="message-content">
-                <div class="message-text">{{ welcome_message|linebreaks }}</div>
-                <div class="message-time">Just now</div>
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            {% if not messages and not welcome_message %}
+                <div class="welcome-screen">
+                    <div class="welcome-icon">🤖</div>
+                    <h3>AI Fitness Trainer</h3>
+                    <p>Ready to help you achieve your fitness goals!</p>
+                    <div class="starter-tips">
+                        <div class="tip-item">Ask about workout routines</div>
+                        <div class="tip-item">Get nutrition advice</div>
+                        <div class="tip-item">Plan your fitness journey</div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if welcome_message %}
+            <div class="message bot-message">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="message-text">{{ welcome_message }}</div>
+                    <div class="message-time">Just now</div>
+                </div>
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        {% for message in messages %}
-        <!-- User Message -->
-        <div class="message user-message">
-            <div class="message-content">
-                <div class="message-text">{{ message.message }}</div>
-                <div class="message-time">{{ message.timestamp|date:"H:i" }}</div>
+            {% for message in messages reversed %}
+            <!-- User Message -->
+            <div class="message user-message">
+                <div class="message-content">
+                    <div class="message-text">{{ message.message }}</div>
+                    <div class="message-time">{{ message.timestamp|date:"H:i" }}</div>
+                </div>
+                <div class="message-avatar">👤</div>
             </div>
-            <div class="message-avatar">👤</div>
+
+            <!-- Bot Response -->
+            <div class="message bot-message">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="message-text">{{ message.response|linebreaks }}</div>
+                    <div class="message-time">{{ message.timestamp|date:"H:i" }}</div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
 
-        <!-- Bot Response -->
-        <div class="message bot-message">
-            <div class="message-avatar">🤖</div>
-            <div class="message-content">
-                <div class="message-text">{{ message.response|linebreaks }}</div>
-                <div class="message-time">{{ message.timestamp|date:"H:i" }}</div>
-            </div>
+        <!-- Chat Input -->
+        <div class="chat-input-section">
+            <form id="chatForm" method="post">
+                {% csrf_token %}
+                <div class="input-wrapper">
+                    {{ form.message }}
+                    <button type="button" class="voice-btn" id="voiceBtn" title="Voice Input">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </button>
+                    <button type="submit" class="send-btn" id="sendButton">
+                        <span class="send-text">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                            </svg>
+                        </span>
+                        <span class="send-loading" style="display: none;">
+                            <div class="loading-spinner"></div>
+                        </span>
+                    </button>
+                </div>
+            </form>
         </div>
-        {% endfor %}
-    </div>
-
-    <!-- Chat Input -->
-    <div class="chat-input-container">
-        <form id="chatForm" method="post">
-            {% csrf_token %}
-            <div class="input-group">
-                {{ form.message }}
-                <button type="submit" class="btn btn-primary" id="sendButton">
-                    <span class="send-text">Send</span>
-                    <span class="send-loading" style="display: none;">
-                        <span class="spinner"></span>
-                    </span>
-                </button>
-            </div>
-        </form>
     </div>
 
     <!-- Quick Actions -->
     <div class="quick-actions">
-        <h4>💡 Quick Questions</h4>
-        <div class="quick-buttons">
-            <button class="quick-btn" data-message="Give me a beginner workout routine">🏋️ Beginner Workout</button>
-            <button class="quick-btn" data-message="What should I eat to lose weight?">🥗 Weight Loss Diet</button>
-            <button class="quick-btn" data-message="How to build muscle effectively?">💪 Build Muscle</button>
-            <button class="quick-btn" data-message="Create a home workout without equipment">🏠 Home Workout</button>
-            <button class="quick-btn" data-message="How many calories should I eat per day?">📊 Calorie Calculator</button>
-            <button class="quick-btn" data-message="Best exercises for core strength">🎯 Core Workout</button>
+        <h3>Quick Questions</h3>
+        <div class="action-grid">
+            <button class="action-btn" data-message="Give me a beginner workout routine">
+                <span class="action-icon">🏋️</span>
+                <span class="action-text">Beginner Workout</span>
+            </button>
+            <button class="action-btn" data-message="What should I eat to lose weight?">
+                <span class="action-icon">🥗</span>
+                <span class="action-text">Weight Loss Diet</span>
+            </button>
+            <button class="action-btn" data-message="How to build muscle effectively?">
+                <span class="action-icon">💪</span>
+                <span class="action-text">Build Muscle</span>
+            </button>
+            <button class="action-btn" data-message="Create a home workout without equipment">
+                <span class="action-icon">🏠</span>
+                <span class="action-text">Home Workout</span>
+            </button>
+            <button class="action-btn" data-message="How many calories should I eat per day?">
+                <span class="action-icon">📊</span>
+                <span class="action-text">Calorie Calculator</span>
+            </button>
+            <button class="action-btn" data-message="Best exercises for core strength">
+                <span class="action-icon">🎯</span>
+                <span class="action-text">Core Workout</span>
+            </button>
         </div>
     </div>
 </div>
-
-<style>
-/* Chat Container Styles */
-.chat-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-    background: #232a34;
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-}
-
-.chat-header {
-    text-align: center;
-    margin-bottom: 25px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #2e3742;
-}
-
-.chat-header h2 {
-    color: #ffb300;
-    margin-bottom: 5px;
-    font-size: 2rem;
-}
-
-.chat-subtitle {
-    color: #ccc;
-    margin-bottom: 15px;
-}
-
-.chat-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-/* Profile Summary Card */
-.profile-summary-card {
-    background: linear-gradient(135deg, #dc3545, #c82333);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 25px;
-    color: white;
-}
-
-.profile-summary-card h4 {
-    margin-bottom: 15px;
-    color: white;
-}
-
-.profile-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
-}
-
-.profile-stats .stat {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 6px;
-}
-
-.profile-stats .stat.full-width {
-    grid-column: 1 / -1;
-}
-
-.profile-stats .label {
-    font-weight: 600;
-}
-
-/* Chat Messages */
-.chat-messages {
-    max-height: 500px;
-    overflow-y: auto;
-    margin-bottom: 25px;
-    padding: 15px;
-    background: #2e3742;
-    border-radius: 12px;
-    scrollbar-width: thin;
-    scrollbar-color: #ffb300 #2e3742;
-}
-
-.chat-messages::-webkit-scrollbar {
-    width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-    background: #2e3742;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-    background: #ffb300;
-    border-radius: 3px;
-}
-
-.message {
-    display: flex;
-    margin-bottom: 20px;
-    max-width: 100%;
-}
-
-.user-message {
-    justify-content: flex-end;
-}
-
-.bot-message {
-    justify-content: flex-start;
-}
-
-.message-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.user-message .message-avatar {
-    background: #ffb300;
-    margin-left: 10px;
-}
-
-.bot-message .message-avatar {
-    background: #dc3545;
-    margin-right: 10px;
-}
-
-.message-content {
-    max-width: 70%;
-    background: #3a4450;
-    padding: 12px 16px;
-    border-radius: 18px;
-    position: relative;
-}
-
-.user-message .message-content {
-    background: #ffb300;
-    color: #232a34;
-}
-
-.bot-message .message-content {
-    background: #ffffff;
-    color: #333;
-}
-
-.message-text {
-    line-height: 1.4;
-    word-wrap: break-word;
-}
-
-.message-time {
-    font-size: 0.75rem;
-    opacity: 0.7;
-    margin-top: 5px;
-}
-
-/* Chat Input */
-.chat-input-container {
-    margin-bottom: 25px;
-}
-
-.input-group {
-    display: flex;
-    gap: 10px;
-    align-items: stretch;
-}
-
-.chat-input {
-    flex: 1;
-    padding: 15px;
-    border: 2px solid #2e3742;
-    border-radius: 25px;
-    background: #2e3742;
-    color: #fff;
-    font-size: 1rem;
-    resize: none;
-    outline: none;
-}
-
-.chat-input:focus {
-    border-color: #ffb300;
-    box-shadow: 0 0 0 3px rgba(255, 179, 0, 0.1);
-}
-
-#sendButton {
-    padding: 15px 25px;
-    border-radius: 25px;
-    background: #dc3545;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    position: relative;
-    min-width: 80px;
-}
-
-#sendButton:hover {
-    background: #c82333;
-    transform: translateY(-1px);
-}
-
-.spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Quick Actions */
-.quick-actions {
-    background: #2e3742;
-    padding: 20px;
-    border-radius: 12px;
-}
-
-.quick-actions h4 {
-    color: #ffb300;
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.quick-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-}
-
-.quick-btn {
-    background: #3a4450;
-    color: #fff;
-    border: none;
-    padding: 12px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: left;
-    font-size: 0.9rem;
-}
-
-.quick-btn:hover {
-    background: #ffb300;
-    color: #232a34;
-    transform: translateY(-2px);
-}
-
-/* Button Styles */
-.btn-outline {
-    background: transparent;
-    border: 2px solid #ffb300;
-    color: #ffb300;
-}
-
-.btn-outline:hover {
-    background: #ffb300;
-    color: #232a34;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .chat-container {
-        margin: 10px;
-        padding: 15px;
-    }
-    
-    .message-content {
-        max-width: 85%;
-    }
-    
-    .quick-buttons {
-        grid-template-columns: 1fr;
-    }
-    
-    .profile-stats {
-        grid-template-columns: 1fr;
-    }
-    
-    .chat-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const chatForm = document.getElementById('chatForm');
     const chatMessages = document.getElementById('chatMessages');
-    const messageInput = document.querySelector('.chat-input');
+    const messageInput = document.querySelector('#id_message'); // Target the actual form field ID
     const sendButton = document.getElementById('sendButton');
     const sendText = sendButton.querySelector('.send-text');
     const sendLoading = sendButton.querySelector('.send-loading');
-    const quickButtons = document.querySelectorAll('.quick-btn');
+    const actionButtons = document.querySelectorAll('.action-btn');
+    const voiceBtn = document.getElementById('voiceBtn');
+
+    // Web Speech API setup
+    let recognition = null;
+    let isRecording = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = function() {
+            isRecording = true;
+            voiceBtn.classList.add('recording');
+            voiceBtn.title = 'Recording... Click to stop';
+        };
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            messageInput.value = transcript;
+            autoResize();
+            messageInput.focus();
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+            voiceBtn.title = 'Voice Input';
+        };
+
+        recognition.onend = function() {
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+            voiceBtn.title = 'Voice Input';
+        };
+
+        voiceBtn.addEventListener('click', function() {
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+    } else {
+        // Hide voice button if not supported
+        voiceBtn.style.display = 'none';
+    }
+
+    // Debug: Check if elements are found
+    console.log('Form:', chatForm);
+    console.log('Input:', messageInput);
+    console.log('Send button:', sendButton);
 
     // Auto-scroll to bottom
     function scrollToBottom() {
@@ -428,15 +255,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const message = messageInput.value.trim();
         if (!message) return;
 
+        console.log('Sending message:', message);
+
         // Show loading state
         sendText.style.display = 'none';
-        sendLoading.style.display = 'inline-block';
+        sendLoading.style.display = 'inline-flex';
         sendButton.disabled = true;
         messageInput.disabled = true;
 
         // Add user message to chat immediately
         addUserMessage(message);
         messageInput.value = '';
+        autoResize(); // Reset textarea height
         scrollToBottom();
 
         // Send AJAX request
@@ -453,9 +283,12 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
+            console.log('Response:', data);
             if (data.success) {
                 addBotMessage(data.response);
                 scrollToBottom();
+            } else {
+                addBotMessage('Sorry, I encountered an error. Please try again.');
             }
         })
         .catch(error => {
@@ -464,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .finally(() => {
             // Reset loading state
-            sendText.style.display = 'inline-block';
+            sendText.style.display = 'inline-flex';
             sendLoading.style.display = 'none';
             sendButton.disabled = false;
             messageInput.disabled = false;
@@ -472,17 +305,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle quick buttons
-    quickButtons.forEach(button => {
+    // Handle quick action buttons
+    actionButtons.forEach(button => {
         button.addEventListener('click', function() {
             const message = this.getAttribute('data-message');
             messageInput.value = message;
+            autoResize();
             chatForm.dispatchEvent(new Event('submit'));
         });
     });
 
     // Add user message to chat
     function addUserMessage(message) {
+        // Hide welcome screen if it exists
+        const welcomeScreen = chatMessages.querySelector('.welcome-screen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'none';
+        }
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user-message';
         messageDiv.innerHTML = `
@@ -516,13 +356,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    // Enter key to send
-    messageInput.addEventListener('keypress', function(e) {
+    // Auto-resize textarea
+    function autoResize() {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+    }
+
+    // Enter key to send (Shift+Enter for new line)
+    messageInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            console.log('Enter key pressed, submitting form');
             chatForm.dispatchEvent(new Event('submit'));
         }
     });
+
+    // Auto-resize on input
+    messageInput.addEventListener('input', autoResize);
+
+    // Focus on input when page loads
+    messageInput.focus();
 });
 </script>
 {% endblock %}

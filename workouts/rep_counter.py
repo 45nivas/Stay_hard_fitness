@@ -1,33 +1,64 @@
 import math
 import threading
 import time
-import pyttsx3
 from queue import Queue
 import numpy as np
 
+# Optional dependencies for voice feedback
+try:
+    import pyttsx3
+    TTS_AVAILABLE = True
+except ImportError:
+    TTS_AVAILABLE = False
+    print("Text-to-speech not available - voice feedback disabled")
+
 class WorkoutCoach:
     def __init__(self):
-        self.tts_engine = pyttsx3.init()
-        self.tts_engine.setProperty('rate', 150)
-        self.tts_engine.setProperty('volume', 0.8)
-        self.voice_queue = Queue()
-        self.voice_thread = threading.Thread(target=self._voice_worker, daemon=True)
-        self.voice_thread.start()
+        if TTS_AVAILABLE:
+            try:
+                self.tts_engine = pyttsx3.init()
+                self.tts_engine.setProperty('rate', 150)
+                self.tts_engine.setProperty('volume', 0.8)
+                self.voice_queue = Queue()
+                self.voice_thread = threading.Thread(target=self._voice_worker, daemon=True)
+                self.voice_thread.start()
+                self.tts_enabled = True
+            except Exception as e:
+                print(f"TTS initialization failed: {e}")
+                self.tts_enabled = False
+        else:
+            self.tts_enabled = False
         
     def _voice_worker(self):
+        if not self.tts_enabled:
+            return
         while True:
             message = self.voice_queue.get()
             if message is None:
                 break
-            self.tts_engine.say(message)
-            self.tts_engine.runAndWait()
+            if self.tts_enabled:
+                try:
+                    self.tts_engine.say(message)
+                    self.tts_engine.runAndWait()
+                except Exception as e:
+                    print(f"TTS error: {e}")
             self.voice_queue.task_done()
             
     def speak(self, message):
-        self.voice_queue.put(message)
+        """Add voice feedback to queue (if TTS is available)"""
+        if self.tts_enabled:
+            try:
+                self.voice_queue.put(message)
+            except Exception:
+                pass  # Silently fail if voice is not available
         
     def stop(self):
-        self.voice_queue.put(None)
+        """Stop voice feedback"""
+        if self.tts_enabled:
+            try:
+                self.voice_queue.put(None)
+            except Exception:
+                pass
 
 class RepCounter:
     def __init__(self, workout_type):

@@ -94,6 +94,14 @@
                 <span>📝 Log Manually</span>
             </button>
         </div>
+        
+        <!-- Fix Nutrition Button -->
+        <div class="fix-nutrition-section">
+            <button type="button" id="fix-calories" class="fix-calories-btn">
+                <span>🔧 Fix Oil Calories</span>
+                <small>Recalculate meals with corrected nutrition data</small>
+            </button>
+        </div>
     </div>
 
     <!-- Meals Table -->
@@ -103,8 +111,8 @@
             <table id="meal-table" class="meals-table">
                 <thead>
                     <tr>
-                        <th>Food</th>
-                        <th>Quantity</th>
+                        <th>Food Item</th>
+                        <th>Qty</th>
                         <th>Unit</th>
                         <th>Calories</th>
                         <th>Protein</th>
@@ -114,7 +122,7 @@
                         <th>Sugar</th>
                         <th>Sodium</th>
                         <th>Source</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="meal-tbody">
@@ -483,6 +491,52 @@
     box-shadow: 0 10px 25px rgba(155, 89, 182, 0.3);
 }
 
+/* Fix Nutrition Section */
+.fix-nutrition-section {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(241, 196, 15, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+    text-align: center;
+}
+
+.fix-calories-btn {
+    background: linear-gradient(135deg, #f1c40f, #f39c12);
+    border: none;
+    border-radius: 12px;
+    padding: 15px 25px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin: 0 auto;
+    box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+}
+
+.fix-calories-btn small {
+    font-size: 11px;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+.fix-calories-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(241, 196, 15, 0.4);
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.fix-calories-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Meals Section */
 .meals-section {
     background: var(--bg-glass);
@@ -503,40 +557,140 @@
 }
 
 .table-container {
-    border-radius: var(--border-radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    /* Removed overflow-x: auto to prevent horizontal scrolling */
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin: 20px 0;
+    backdrop-filter: blur(10px);
 }
 
 .meals-table {
     width: 100%;
     border-collapse: collapse;
-    background: rgba(255, 255, 255, 0.03);
-    table-layout: fixed; /* Fixed layout to prevent column expansion */
+    background: transparent;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
 }
 
-.meals-table th,
-.meals-table td {
-    padding: 12px 8px;
+.meals-table th {
+    background: linear-gradient(135deg, #dc3545, #fd7f28);
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 16px 12px;
     text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    word-wrap: break-word;
-    overflow: hidden;
+    border: none;
+    white-space: nowrap;
 }
 
-/* Specific column widths for better layout */
-.meals-table th:nth-child(1), .meals-table td:nth-child(1) { width: 20%; } /* Food */
-.meals-table th:nth-child(2), .meals-table td:nth-child(2) { width: 8%; }  /* Quantity */
-.meals-table th:nth-child(3), .meals-table td:nth-child(3) { width: 6%; }  /* Unit */
-.meals-table th:nth-child(4), .meals-table td:nth-child(4) { width: 8%; }  /* Calories */
-.meals-table th:nth-child(5), .meals-table td:nth-child(5) { width: 8%; }  /* Protein */
-.meals-table th:nth-child(6), .meals-table td:nth-child(6) { width: 8%; }  /* Carbs */
-.meals-table th:nth-child(7), .meals-table td:nth-child(7) { width: 8%; }  /* Fat */
-.meals-table th:nth-child(8), .meals-table td:nth-child(8) { width: 7%; }  /* Fiber */
-.meals-table th:nth-child(9), .meals-table td:nth-child(9) { width: 7%; }  /* Sugar */
-.meals-table th:nth-child(10), .meals-table td:nth-child(10) { width: 7%; } /* Sodium */
-.meals-table th:nth-child(11), .meals-table td:nth-child(11) { width: 6%; } /* Source */
-.meals-table th:nth-child(12), .meals-table td:nth-child(12) { width: 7%; } /* Action */
+.meals-table th:first-child {
+    border-top-left-radius: 16px;
+}
+
+.meals-table th:last-child {
+    border-top-right-radius: 16px;
+}
+
+.meals-table td {
+    padding: 14px 12px;
+    color: #495057;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+.meals-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.meals-table tbody tr:hover {
+    background: rgba(220, 53, 69, 0.05);
+    transform: translateY(-1px);
+}
+
+.meals-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.meals-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 16px;
+}
+
+.meals-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 16px;
+}
+
+/* Professional column widths */
+.meals-table th:nth-child(1), .meals-table td:nth-child(1) { 
+    width: 22%; 
+    font-weight: 600;
+    color: #2c3e50;
+}
+.meals-table th:nth-child(2), .meals-table td:nth-child(2) { 
+    width: 8%; 
+    text-align: center;
+    color: #3498db;
+    font-weight: 600;
+}
+.meals-table th:nth-child(3), .meals-table td:nth-child(3) { 
+    width: 6%; 
+    text-align: center;
+    color: #95a5a6;
+    font-size: 12px;
+}
+.meals-table th:nth-child(4), .meals-table td:nth-child(4) { 
+    width: 8%; 
+    text-align: center;
+    color: #e74c3c;
+    font-weight: 600;
+}
+.meals-table th:nth-child(5), .meals-table td:nth-child(5) { 
+    width: 8%; 
+    text-align: center;
+    color: #27ae60;
+    font-weight: 600;
+}
+.meals-table th:nth-child(6), .meals-table td:nth-child(6) { 
+    width: 8%; 
+    text-align: center;
+    color: #f39c12;
+    font-weight: 600;
+}
+.meals-table th:nth-child(7), .meals-table td:nth-child(7) { 
+    width: 8%; 
+    text-align: center;
+    color: #9b59b6;
+    font-weight: 600;
+}
+.meals-table th:nth-child(8), .meals-table td:nth-child(8) { 
+    width: 7%; 
+    text-align: center;
+    color: #16a085;
+    font-size: 12px;
+}
+.meals-table th:nth-child(9), .meals-table td:nth-child(9) { 
+    width: 7%; 
+    text-align: center;
+    color: #e67e22;
+    font-size: 12px;
+}
+.meals-table th:nth-child(10), .meals-table td:nth-child(10) { 
+    width: 7%; 
+    text-align: center;
+    color: #34495e;
+    font-size: 12px;
+}
+.meals-table th:nth-child(11), .meals-table td:nth-child(11) { 
+    width: 6%; 
+    text-align: center;
+}
+.meals-table th:nth-child(12), .meals-table td:nth-child(12) { 
+    width: 7%; 
+    text-align: center;
+}
 
 .meals-table th {
     background: rgba(255, 255, 255, 0.08);
@@ -557,21 +711,32 @@
 }
 
 .delete-btn {
-    background: rgba(231, 76, 60, 0.2);
-    border: 1px solid rgba(231, 76, 60, 0.3);
-    border-radius: var(--border-radius-sm);
-    padding: 6px 10px;
-    color: #e74c3c;
-    font-size: 12px;
-    cursor: pointer;
-    transition: var(--transition-smooth);
-    white-space: nowrap;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 11px;
     font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .delete-btn:hover {
-    background: rgba(231, 76, 60, 0.3);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.delete-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
 }
 
 .no-meals {
@@ -1015,6 +1180,45 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Network error: ' + error.message, 'error');
         });
     };
+
+    // Fix calories function
+    window.fixCalories = function() {
+        const fixBtn = document.getElementById('fix-calories');
+        const originalText = fixBtn.innerHTML;
+        
+        fixBtn.disabled = true;
+        fixBtn.innerHTML = '<span>🔄 Fixing...</span>';
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        fetch('/api/recalculate-meals/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`✅ ${data.message}`, 'success');
+                fetchSummary();
+                fetchMeals();
+            } else {
+                showToast('Fix failed: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Network error: ' + error.message, 'error');
+        })
+        .finally(() => {
+            fixBtn.disabled = false;
+            fixBtn.innerHTML = originalText;
+        });
+    };
+
+    // Bind fix button
+    document.getElementById('fix-calories').onclick = fixCalories;
 
     // Initial data fetch
     fetchSummary();

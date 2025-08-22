@@ -29,7 +29,29 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-f7i8mti4f2g^2k@j@i$59zc9d-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']  # Render will provide the domain
+ALLOWED_HOSTS = ['*']  # Allow all hosts for now
+
+# Add logging to see errors in production
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 
 # Application definition

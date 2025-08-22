@@ -5,7 +5,12 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 import cv2
-import mediapipe as mp
+try:
+    import mediapipe as mp
+    MEDIAPIPE_AVAILABLE = True
+except ImportError:
+    MEDIAPIPE_AVAILABLE = False
+    print("MediaPipe not available - pose detection will be disabled")
 import numpy as np
 from .rep_counter import RepCounter
 from .models import UserProfile, ChatSession, ChatMessage
@@ -56,12 +61,19 @@ def workout_page(request, workout_name):
 def gen_frames(workout_name):
     # Initialize MediaPipe and rep counter
     cap = cv2.VideoCapture(0)
-    mp_pose = mp.solutions.pose
-    pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
-    mp_drawing = mp.solutions.drawing_utils
     
-    # Initialize rep counter for specific workout
-    counter = RepCounter(workout_name)
+    if MEDIAPIPE_AVAILABLE:
+        mp_pose = mp.solutions.pose
+        pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        mp_drawing = mp.solutions.drawing_utils
+        
+        # Initialize rep counter for specific workout
+        counter = RepCounter(workout_name)
+    else:
+        # Fallback when MediaPipe is not available
+        pose = None
+        mp_drawing = None
+        counter = None
     
     try:
         while True:
@@ -72,51 +84,61 @@ def gen_frames(workout_name):
             # Flip frame horizontally for mirror effect
             frame = cv2.flip(frame, 1)
             
-            # Convert BGR to RGB
-            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            image.flags.writeable = False
-            
-            # Make detection
-            results = pose.process(image)
-            
-            # Convert back to BGR
-            image.flags.writeable = True
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            
-            # Process landmarks for rep counting
-            if results.pose_landmarks:
-                counter.process_frame(results.pose_landmarks)
+            if MEDIAPIPE_AVAILABLE and pose:
+                # Convert BGR to RGB
+                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                image.flags.writeable = False
                 
-                # Draw pose landmarks
-                mp_drawing.draw_landmarks(
-                    image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                    mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2),
-                    mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
-                )
-            
-            # Add workout info overlay
-            cv2.rectangle(image, (0, 0), (450, 140), (0, 0, 0), -1)
-            cv2.putText(image, f'Workout: {workout_name.replace("_", " ").title()}', 
-                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-            
-            # Display reps based on workout type
-            if workout_name in ["bicep_curls", "hammer_curls"]:
-                cv2.putText(image, f'Left: {counter.left_rep_count} Right: {counter.right_rep_count}', 
-                           (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                cv2.putText(image, f'Total Reps: {counter.rep_count}', 
-                           (10, 95), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+                # Make detection
+                results = pose.process(image)
+                
+                # Convert back to BGR
+                image.flags.writeable = True
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                
+                # Process landmarks for rep counting
+                if results.pose_landmarks and counter:
+                    counter.process_frame(results.pose_landmarks)
+                    
+                    # Draw pose landmarks
+                    mp_drawing.draw_landmarks(
+                        image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                        mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2),
+                        mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
+                    )
+                
+                # Add workout info overlay
+                cv2.rectangle(image, (0, 0), (450, 140), (0, 0, 0), -1)
+                cv2.putText(image, f'Workout: {workout_name.replace("_", " ").title()}', 
+                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                
+                # Display reps based on workout type
+                if counter:
+                    if workout_name in ["bicep_curls", "hammer_curls"]:
+                        cv2.putText(image, f'Left: {counter.left_rep_count} Right: {counter.right_rep_count}', 
+                                   (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                        cv2.putText(image, f'Total Reps: {counter.rep_count}', 
+                                   (10, 95), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+                    else:
+                        cv2.putText(image, f'Reps: {counter.rep_count}', 
+                                   (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
+                        
+                    cv2.putText(image, f'Stage: {counter.stage if counter.stage else "Ready"}', 
+                               (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+                    
+                    # Add form tips
+                    tips = counter.get_feedback_text()
+                    for i, tip in enumerate(tips[:3]):  # Show only 3 tips
+                        cv2.putText(image, tip, (10, 150 + i*25), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             else:
-                cv2.putText(image, f'Reps: {counter.rep_count}', 
-                           (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
-                
-            cv2.putText(image, f'Stage: {counter.stage if counter.stage else "Ready"}', 
-                       (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
-            
-            # Add form tips
-            tips = counter.get_feedback_text()
-            for i, tip in enumerate(tips[:3]):  # Show only 3 tips
-                cv2.putText(image, tip, (10, 150 + i*25), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                # Fallback display when MediaPipe is not available
+                image = frame
+                cv2.rectangle(image, (0, 0), (450, 100), (0, 0, 0), -1)
+                cv2.putText(image, f'Workout: {workout_name.replace("_", " ").title()}', 
+                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                cv2.putText(image, 'Pose detection unavailable in this environment', 
+                           (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
             
             # Encode frame
             ret, buffer = cv2.imencode('.jpg', image)
@@ -126,7 +148,8 @@ def gen_frames(workout_name):
     except Exception as e:
         print(f"Error in video generation: {e}")
     finally:
-        counter.cleanup()
+        if counter:
+            counter.cleanup()
         cap.release()
 
 @login_required

@@ -503,23 +503,40 @@
 }
 
 .table-container {
-    overflow-x: auto;
     border-radius: var(--border-radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Removed overflow-x: auto to prevent horizontal scrolling */
 }
 
 .meals-table {
     width: 100%;
     border-collapse: collapse;
     background: rgba(255, 255, 255, 0.03);
+    table-layout: fixed; /* Fixed layout to prevent column expansion */
 }
 
 .meals-table th,
 .meals-table td {
-    padding: 15px 12px;
+    padding: 12px 8px;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    word-wrap: break-word;
+    overflow: hidden;
 }
+
+/* Specific column widths for better layout */
+.meals-table th:nth-child(1), .meals-table td:nth-child(1) { width: 20%; } /* Food */
+.meals-table th:nth-child(2), .meals-table td:nth-child(2) { width: 8%; }  /* Quantity */
+.meals-table th:nth-child(3), .meals-table td:nth-child(3) { width: 6%; }  /* Unit */
+.meals-table th:nth-child(4), .meals-table td:nth-child(4) { width: 8%; }  /* Calories */
+.meals-table th:nth-child(5), .meals-table td:nth-child(5) { width: 8%; }  /* Protein */
+.meals-table th:nth-child(6), .meals-table td:nth-child(6) { width: 8%; }  /* Carbs */
+.meals-table th:nth-child(7), .meals-table td:nth-child(7) { width: 8%; }  /* Fat */
+.meals-table th:nth-child(8), .meals-table td:nth-child(8) { width: 7%; }  /* Fiber */
+.meals-table th:nth-child(9), .meals-table td:nth-child(9) { width: 7%; }  /* Sugar */
+.meals-table th:nth-child(10), .meals-table td:nth-child(10) { width: 7%; } /* Sodium */
+.meals-table th:nth-child(11), .meals-table td:nth-child(11) { width: 6%; } /* Source */
+.meals-table th:nth-child(12), .meals-table td:nth-child(12) { width: 7%; } /* Action */
 
 .meals-table th {
     background: rgba(255, 255, 255, 0.08);
@@ -543,11 +560,13 @@
     background: rgba(231, 76, 60, 0.2);
     border: 1px solid rgba(231, 76, 60, 0.3);
     border-radius: var(--border-radius-sm);
-    padding: 8px 12px;
+    padding: 6px 10px;
     color: #e74c3c;
-    font-size: var(--font-size-sm);
+    font-size: 12px;
     cursor: pointer;
     transition: var(--transition-smooth);
+    white-space: nowrap;
+    font-weight: 600;
 }
 
 .delete-btn:hover {
@@ -719,8 +738,31 @@
     
     .meals-table th,
     .meals-table td {
-        padding: 10px 8px;
-        font-size: var(--font-size-xs);
+        padding: 8px 4px;
+        font-size: 11px;
+    }
+    
+    /* Hide less important columns on mobile */
+    .meals-table th:nth-child(8), .meals-table td:nth-child(8), /* Fiber */
+    .meals-table th:nth-child(9), .meals-table td:nth-child(9), /* Sugar */
+    .meals-table th:nth-child(10), .meals-table td:nth-child(10), /* Sodium */
+    .meals-table th:nth-child(11), .meals-table td:nth-child(11) { /* Source */
+        display: none;
+    }
+    
+    /* Adjust remaining column widths for mobile */
+    .meals-table th:nth-child(1), .meals-table td:nth-child(1) { width: 25%; } /* Food */
+    .meals-table th:nth-child(2), .meals-table td:nth-child(2) { width: 10%; } /* Quantity */
+    .meals-table th:nth-child(3), .meals-table td:nth-child(3) { width: 8%; }  /* Unit */
+    .meals-table th:nth-child(4), .meals-table td:nth-child(4) { width: 12%; } /* Calories */
+    .meals-table th:nth-child(5), .meals-table td:nth-child(5) { width: 12%; } /* Protein */
+    .meals-table th:nth-child(6), .meals-table td:nth-child(6) { width: 12%; } /* Carbs */
+    .meals-table th:nth-child(7), .meals-table td:nth-child(7) { width: 12%; } /* Fat */
+    .meals-table th:nth-child(12), .meals-table td:nth-child(12) { width: 9%; } /* Action */
+    
+    .delete-btn {
+        padding: 4px 6px;
+        font-size: 10px;
     }
 }
 </style>

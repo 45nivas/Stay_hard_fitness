@@ -80,28 +80,5 @@
     </div>
   </div>
 
-  <!-- Available Pose Detection Exercises -->
-  <div class="exercises-section">
-    <div class="workout-header">
-      <h2>🎯 Available Pose Detection Exercises</h2>
-    </div>
-    
-    <div class="exercises-grid">
-      {% for workout in workouts %}
-      <a href="{% url 'workout_page' workout.slug %}" class="exercise-card">
-        <div class="exercise-icon">
-          {% if workout.slug == 'squats' %}💪
-          {% elif workout.slug == 'pushups' %}👊
-          {% elif workout.slug == 'bicep_curls' %}💪
-          {% elif workout.slug == 'hammer_curls' %}🔨
-          {% elif workout.slug == 'side_raises' %}🤸
-          {% endif %}
-        </div>
-        <h4>{{ workout.name }}</h4>
-        <span class="detection-badge">AI POSE DETECTION</span>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
 </div>
 {% endblock %}

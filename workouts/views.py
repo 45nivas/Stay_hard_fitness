@@ -8,8 +8,10 @@ import cv2
 import time
 import numpy as np
 try:
+    # MediaPipe now working after fixing NumPy compatibility
     import mediapipe as mp
     MEDIAPIPE_AVAILABLE = True
+    print("MediaPipe enabled - pose detection ready!")
 except ImportError:
     MEDIAPIPE_AVAILABLE = False
     print("MediaPipe not available - pose detection will be disabled")
@@ -21,7 +23,7 @@ except ImportError as e:
     REP_COUNTER_AVAILABLE = False
     print(f"RepCounter not available: {e}")
     RepCounter = None
-from .models import UserProfile, ChatSession, ChatMessage
+from .models import UserProfile, ChatSession, ChatMessage, MealLog, FoodItem, DailySummary
 from .forms import UserProfileForm, ChatMessageForm
 from .fitness_chatbot import FitnessChatbot
 import json
@@ -289,6 +291,10 @@ def fitness_chat(request):
             
             # Process message with chatbot (pass profile data)
             bot_response = chatbot.process_message(user_message, user_profile_data)
+            
+            # Ensure we always have a valid response (safety check)
+            if not bot_response or bot_response.strip() == "":
+                bot_response = "💪 I'm here to help with your fitness journey! Could you please rephrase your question about workouts or nutrition?"
             
             # Save chat message
             ChatMessage.objects.create(
@@ -781,7 +787,7 @@ def recalculate_meals(request):
         # Get all meals for today
         from django.utils import timezone
         today = timezone.now().date()
-        meals = Meal.objects.filter(user=request.user, created_at__date=today)
+        meals = MealLog.objects.filter(user=request.user, date=today)
         
         updated_count = 0
         for meal in meals:

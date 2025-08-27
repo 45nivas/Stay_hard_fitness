@@ -226,31 +226,40 @@ class RepCounter:
             
     def count_side_raises(self, landmarks):
         try:
-            # Get left and right shoulder and elbow landmarks like Flask app
+            # Get shoulder, elbow landmarks for side raise detection
             left_shoulder = [landmarks[11].x, landmarks[11].y]   # LEFT_SHOULDER
             left_elbow = [landmarks[13].x, landmarks[13].y]      # LEFT_ELBOW
-            right_shoulder = [landmarks[12].x, landmarks[12].y]  # RIGHT_SHOULDER
+            right_shoulder = [landmarks[12].x, landmarks[12].y]  # RIGHT_SHOULDER  
             right_elbow = [landmarks[14].x, landmarks[14].y]     # RIGHT_ELBOW
-
-            # Calculate angles for left and right side raises like Flask app
-            left_angle = self.calculate_angle(left_shoulder, left_elbow, (left_elbow[0], 0))
-            right_angle = self.calculate_angle(right_shoulder, right_elbow, (right_elbow[0], 0))
-
-            # Check for left side raise stage transitions - exact Flask logic
-            if left_angle < 45:
+            
+            # Calculate elevation angle for each arm relative to shoulder
+            # For side raises, we want the angle between shoulder and elbow relative to horizontal
+            
+            # Left arm elevation (0° = horizontal, 90° = straight up, -90° = straight down)
+            left_elevation = math.degrees(math.atan2(
+                left_shoulder[1] - left_elbow[1],  # y difference (note: inverted due to screen coordinates)
+                abs(left_elbow[0] - left_shoulder[0])  # x difference
+            ))
+            
+            # Right arm elevation  
+            right_elevation = math.degrees(math.atan2(
+                right_shoulder[1] - right_elbow[1],  # y difference (note: inverted due to screen coordinates)
+                abs(right_elbow[0] - right_shoulder[0])  # x difference
+            ))
+            
+            # Use the average of both arms for better detection
+            avg_elevation = (left_elevation + right_elevation) / 2
+            
+            # Stage detection for side raises:
+            # Down position: arms at side (elevation < 20°)
+            # Up position: arms raised to shoulder level (elevation > 60°)
+            
+            if avg_elevation > 60 and self.stage == "down":
                 self.stage = "up"
-            if left_angle > 150 and self.stage == "up":
+            elif avg_elevation < 20 and self.stage == "up":
                 self.stage = "down"
                 self.rep_count += 1
                 self.coach.speak(f"Great side raise! {self.rep_count} reps")
-
-            # Check for right side raise stage transitions
-            if right_angle < 45:
-                self.stage = "up"
-            if right_angle > 150 and self.stage == "up":
-                self.stage = "down"
-                self.rep_count += 1
-                self.coach.speak(f"Perfect side raise! {self.rep_count} reps")
                 
         except Exception as e:
             pass

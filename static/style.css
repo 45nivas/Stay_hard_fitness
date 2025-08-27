@@ -111,11 +111,15 @@ a:hover {
 
 /* Clean Navigation */
 .main-nav {
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
+    background: rgba(31, 33, 40, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid var(--accent-green);
+    position: fixed;
     top: 0;
-    z-index: 1000;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .nav-container {
@@ -126,6 +130,12 @@ a:hover {
     justify-content: space-between;
     align-items: center;
     height: 64px;
+}
+
+/* Add top margin to body content to account for fixed nav */
+.main-content {
+    margin-top: 64px;
+    min-height: calc(100vh - 64px);
 }
 
 .nav-brand h1 {
@@ -190,8 +200,25 @@ a:hover {
 /* Clean Page Headers */
 .page-header {
     text-align: center;
-    margin-bottom: var(--spacing-3xl);
-    padding: var(--spacing-2xl) 0;
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg) 0;
+}
+
+/* Compact header for workout selection */
+.workout-selection .page-header {
+    margin-bottom: var(--spacing-xs);
+    padding: var(--spacing-xs) 0;
+    flex-shrink: 0;
+}
+
+.workout-selection .page-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.workout-selection .page-header p {
+    font-size: 0.9rem;
+    margin: 0;
 }
 
 .page-header h1 {
@@ -228,11 +255,16 @@ a:hover {
     line-height: 1.6;
 }
 
-/* Workout Selection Grid */
+/* Workout Selection Grid - Fixed height, no scrolling */
 .workout-selection {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 var(--spacing-xl);
+    padding: 0 var(--spacing-md);
+    height: calc(100vh - 64px); /* Account for fixed nav height */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent any scrolling */
+    box-sizing: border-box;
 }
 
 .workout-grid {
@@ -289,23 +321,28 @@ a:hover {
     margin-bottom: var(--spacing-lg);
 }
 
-/* Tools Layout */
+/* Tools Layout - Compact for no scrolling */
 .tools-section {
-    margin: var(--spacing-xl) 0;
+    margin: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    overflow: hidden;
 }
 
 .tools-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    flex: 1;
 }
 
 .tool-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-md); /* Reduced padding */
     text-decoration: none;
     color: inherit;
     transition: all 0.3s ease;
@@ -314,7 +351,7 @@ a:hover {
     height: 100%;
     position: relative;
     overflow: hidden;
-    min-height: 300px;
+    min-height: 140px; /* Further reduced height */
 }
 
 .tool-card:hover {
@@ -324,34 +361,43 @@ a:hover {
 }
 
 .tool-icon {
-    font-size: 3rem;
-    margin-bottom: var(--spacing-md);
+    font-size: 2rem; /* Further reduced from 2.5rem */
+    margin-bottom: var(--spacing-xs); /* Further reduced spacing */
     text-align: center;
 }
 
 .tool-card h3 {
     color: var(--text-primary);
-    font-size: 1.5rem;
+    font-size: 1.25rem; /* Reduced from 1.5rem */
     font-weight: var(--font-weight-semibold);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs); /* Reduced from sm */
     text-align: center;
 }
 
 .tool-card p {
     color: var(--text-secondary);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: var(--spacing-lg);
+    font-size: 0.9rem; /* Slightly smaller */
+    line-height: 1.5; /* Tighter line height */
+    margin-bottom: var(--spacing-sm); /* Reduced margin */
     flex-grow: 1;
     text-align: center;
+}
+
+/* Compact feature tags */
+.feature-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    justify-content: center;
+    margin-bottom: var(--spacing-sm);
 }
 
 .tag {
     background: var(--accent-green-subtle);
     color: var(--text-muted);
-    padding: 4px 8px;
+    padding: 2px 6px; /* Reduced padding */
     border-radius: var(--radius-sm);
-    font-size: 0.75rem;
+    font-size: 0.7rem; /* Smaller font */
     font-weight: var(--font-weight-medium);
 }
 
@@ -2705,5 +2751,232 @@ a:hover {
     .form-actions .btn {
         width: 100%;
         max-width: 300px;
+    }
+}
+
+/* ===== WORKOUT PAGE STYLES ===== */
+.workout-page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.workout-page-container h2 {
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Video Container - Centered and Larger */
+.video-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    background: var(--bg-card);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
+}
+
+#video-stream {
+    width: 640px;
+    height: 480px;
+    border-radius: var(--radius-lg);
+    object-fit: cover;
+    background: #000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Workout Stats - Smaller Rep Counter */
+.workout-stats {
+    display: flex;
+    gap: var(--spacing-xl);
+    justify-content: center;
+    align-items: center;
+    background: var(--bg-secondary);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    color: var(--accent-green);
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+/* Workout Info Panel */
+.workout-info {
+    width: 100%;
+    max-width: 640px;
+}
+
+.tips-panel {
+    background: var(--bg-card);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.tips-panel h3 {
+    color: var(--text-primary);
+    font-size: 1.125rem;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.tips-panel h3::before {
+    content: "💡";
+    font-size: 1.25rem;
+}
+
+#tips-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+#tips-list li {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-input);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--accent-green);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+#tips-list li::before {
+    content: "✓";
+    color: var(--accent-green);
+    font-weight: var(--font-weight-bold);
+    font-size: 0.875rem;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+#voice-toggle {
+    background: var(--accent-green);
+    color: var(--bg-primary);
+    border: none;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+#voice-toggle:hover {
+    background: var(--accent-green-hover);
+    transform: translateY(-1px);
+}
+
+.back-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.back-link::before {
+    content: "←";
+    font-size: 1rem;
+}
+
+.back-link:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-green);
+    transform: translateY(-1px);
+}
+
+/* Responsive Design for Workout Page */
+@media (max-width: 768px) {
+    .workout-page-container {
+        padding: var(--spacing-lg);
+    }
+    
+    #video-stream {
+        width: 100%;
+        max-width: 480px;
+        height: 360px;
+    }
+    
+    .workout-stats {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .stat-item {
+        flex-direction: row;
+        gap: var(--spacing-md);
+    }
+    
+    .controls {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+}
+
+@media (max-width: 480px) {
+    #video-stream {
+        height: 280px;
+    }
+    
+    .workout-page-container h2 {
+        font-size: 1.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
     }
 }

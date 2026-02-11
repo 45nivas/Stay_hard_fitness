@@ -10,9 +10,13 @@ urlpatterns = [
     path('workouts/', views.workout_selection, name='workout_selection'),
     path('workout/<str:workout_name>/', views.workout_page, name='workout_page'),
     path('video_feed/<str:workout_name>/', views.video_feed, name='video_feed'),
+    path('complete-workout/<str:workout_name>/', views.complete_workout, name='complete_workout'),
+    # Emergency raw camera feed for lag issues
+    path('emergency_video_feed/<str:workout_name>/', views.emergency_video_feed, name='emergency_video_feed'),
     # Profile and Chat URLs
     path('profile/', views.profile_setup, name='profile_setup'),
     path('fitness-chat/', views.fitness_chat, name='fitness_chat'),
+    path('fitness-chat/stream/', views.fitness_chat_stream, name='fitness_chat_stream'),
     path('clear-chat/', views.clear_chat_session, name='clear_chat_session'),
     # One Rep Max Calculator
     path('one-rep-max/', views.one_rep_max_calculator, name='one_rep_max'),
@@ -25,6 +29,8 @@ urlpatterns = [
     path('api/get-daily-meals/', views.get_daily_meals, name='get_daily_meals'),
     path('api/delete-meal/', views.delete_meal, name='delete_meal'),
     path('api/recalculate-meals/', views.recalculate_meals, name='recalculate_meals'),
+    # Exercise Activity API
+    path('api/get-today-activity/', views.get_today_activity, name='get_today_activity'),
     # Pose Correction URLs
     path('pose-correction/', views.pose_correction, name='pose_correction'),
     path('posture-analysis/', views.posture_analysis, name='posture_analysis'),

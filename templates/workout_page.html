@@ -45,6 +45,7 @@
   </div>
   <div class="controls">
     <button id="voice-toggle" class="btn">🔊 Voice ON</button>
+    <button id="complete-workout" class="btn btn-success">✅ Complete Workout</button>
     <a href="{% url 'workout_selection' %}" class="back-link">Back to selection</a>
   </div>
 </div>
@@ -54,6 +55,51 @@ document.getElementById('voice-toggle').addEventListener('click', function() {
   voiceEnabled = !voiceEnabled;
   this.textContent = voiceEnabled ? '🔊 Voice ON' : '🔇 Voice OFF';
   this.style.background = voiceEnabled ? '#ffb300' : '#666';
+});
+
+// Complete Workout button - saves data to database
+document.getElementById('complete-workout').addEventListener('click', function() {
+  const button = this;
+  button.disabled = true;
+  button.textContent = '⏳ Saving...';
+  
+  fetch("{% url 'complete_workout' workout_name %}", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      button.textContent = '✅ Workout Saved!';
+      button.style.background = '#4CAF50';
+      
+      // Show summary
+      alert(`🎉 Workout Complete!\n\n` +
+            `Total Reps: ${data.total_reps}\n` +
+            `Left: ${data.left_reps} | Right: ${data.right_reps}\n` +
+            `Calories Burned: ${data.calories_burned} cal\n` +
+            `Duration: ${data.duration_seconds}s\n\n` +
+            `Great job! 💪`);
+      
+      // Redirect to workout selection after 2 seconds
+      setTimeout(() => {
+        window.location.href = "{% url 'workout_selection' %}";
+      }, 2000);
+    } else {
+      button.disabled = false;
+      button.textContent = '✅ Complete Workout';
+      alert('Error saving workout: ' + (data.error || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    button.disabled = false;
+    button.textContent = '✅ Complete Workout';
+    alert('Network error. Please try again.');
+    console.error('Error:', error);
+  });
 });
 
 // Auto-refresh stats from video overlay (the rep counting is handled by the backend)

@@ -176,3 +176,30 @@ class DailySummary(models.Model):
 
     def __str__(self):
         return f"Summary for {self.user.username} on {self.date}"
+
+
+class ExerciseLog(models.Model):
+    EXERCISE_CHOICES = [
+        ('squats', 'Squats'),
+        ('pushups', 'Push-ups'),
+        ('bicep_curls', 'Bicep Curls'),
+        ('hammer_curls', 'Hammer Curls'),
+        ('side_raises', 'Side Raises'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    exercise = models.CharField(max_length=50, choices=EXERCISE_CHOICES)
+    reps = models.IntegerField(default=0)
+    reps_left = models.IntegerField(default=0)
+    reps_right = models.IntegerField(default=0)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    duration_seconds = models.IntegerField(default=0)
+    calories_burned = models.FloatField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-start_time']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_exercise_display()} - {self.reps} reps"

@@ -1,5 +1,5 @@
 """
-Fitness Chatbot using Gemini API for personalized fitness guidance
+Fitness Chatbot using Ollama for personalized fitness guidance
 Handles user queries about workouts, nutrition, and fitness goals
 """
 
@@ -15,9 +15,34 @@ class FitnessChatbot:
     def __init__(self):
         self.user_data = {}
         self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
-        # Keep Gemini as fallback
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.gemini_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+        self.ollama_model = os.getenv("OLLAMA_MODEL", "llama3.2")
+        
+        # Test Ollama connection
+        self.ollama_available = self._test_ollama_connection()
+        if not self.ollama_available:
+            print("WARNING: Ollama not available. Make sure Ollama is running and llama3.2 model is installed.")
+    
+    def _test_ollama_connection(self):
+        """Test if Ollama is available using lightweight tags endpoint"""
+        try:
+            # Use /api/tags instead of generating a response - much faster
+            base_url = self.ollama_url.replace('/api/generate', '')
+            response = requests.get(
+                f"{base_url}/api/tags",
+                timeout=5
+            )
+            if response.status_code == 200:
+                # Check if our model is available
+                models = response.json().get('models', [])
+                model_names = [m.get('name', '').split(':')[0] for m in models]
+                if self.ollama_model.split(':')[0] in model_names:
+                    return True
+                else:
+                    print(f"WARNING: Model '{self.ollama_model}' not found. Available: {model_names}")
+                    return False
+            return False
+        except:
+            return False
     
     def calculate_daily_nutrition(self, user_profile_data):
         """Calculate proper daily nutrition for gym goals - FIXED VERSION"""
@@ -140,9 +165,13 @@ class FitnessChatbot:
         # Nutrition queries - check for fat loss specific questions first
         elif any(keyword in message_lower for keyword in ['lose fat', 'fat loss', 'cutting', 'lose weight']):
             return self.provide_fat_loss_advice(message, user_profile_data)
-        # More specific nutrition keywords to avoid false triggers
-        elif any(keyword in message_lower for keyword in ['daily calories', 'how many calories', 'nutrition plan', 'macros', 'diet plan', 'bmr', 'tdee', 'meal plan', 'what should i eat', 'protein intake', 'carb intake']):
+        # Specific calorie/macro calculation requests → hardcoded calculator
+        elif any(keyword in message_lower for keyword in ['daily calories', 'how many calories', 'nutrition plan', 'macros', 'diet plan', 'bmr', 'tdee', 'meal plan', 'calorie goal', 'calorie target']):
             return self.calculate_daily_nutrition(user_profile_data)
+        
+        # General food/nutrition/diet questions → Ollama for smart answers
+        elif any(keyword in message_lower for keyword in ['protein', 'carbs', 'food', 'foods', 'eat', 'nutrition', 'diet', 'calorie', 'water', 'hydration', 'drink', 'snack', 'meal', 'recipe', 'supplement', 'creatine', 'whey', 'vitamin']):
+            return self.generate_nutrition_response(message, user_profile_data)
         
         # Workout queries with pose detection context
         elif any(keyword in message_lower for keyword in ['workout', 'exercise', 'squat', 'pushup', 'curl', 'rep']):
@@ -225,98 +254,166 @@ While I'd love to discuss that, I'm specifically designed to be your **AI fitnes
 Let's focus on your fitness journey! What would you like to know about health and exercise? 💪"""
     
     def generate_workout_response(self, message, user_profile_data):
-        """Generate workout responses with MediaPipe pose detection context"""
+        """Generate workout responses with MediaPipe pose detection context and today's progress"""
+        
+        # Build today's workout summary
+        today_summary = "No workouts completed today yet"
+        if user_profile_data and user_profile_data.get('today_activity', {}).get('total_reps', 0) > 0:
+            activity = user_profile_data['today_activity']
+            today_summary = f"Today: {activity['total_reps']} total reps, {activity['total_calories_burned']} calories burned"
+            if activity.get('by_exercise'):
+                exercises = ", ".join([f"{ex}: {data['reps']} reps" for ex, data in activity['by_exercise'].items()])
+                today_summary += f" | Exercises: {exercises}"
         
         prompt = f"""You are a fitness trainer for a gym app with OpenCV pose detection.
         
 User message: "{message}"
 User profile: {user_profile_data}
+Today's Progress: {today_summary}
 
 Available workouts with real-time pose correction:
 - Squats (MediaPipe landmark tracking)
-- Push-ups (Form analysis with OpenCV)
+- Push-ups (Form analysis with OpenCV)  
 - Bicep Curls (Rep counting)
 - Hammer Curls (Left/right arm tracking)
 - Side Raises (Shoulder form check)
 
-Provide specific, actionable fitness advice. Mention our pose detection features when relevant.
+Provide specific, actionable fitness advice. Reference today's completed workouts if any.
+Encourage continued progress and suggest complementary exercises.
 Keep responses under 200 words and gym-focused."""
 
         return self._query_ollama(prompt)
     
+    def generate_nutrition_response(self, message, user_profile_data):
+        """Generate nutrition/food responses using Ollama for smart, contextual answers"""
+        
+        profile_context = "No profile set up"
+        if user_profile_data:
+            weight = user_profile_data.get('weight', 'unknown')
+            goal = user_profile_data.get('primary_goal_code', 'general fitness')
+            profile_context = f"Weight: {weight}kg, Goal: {goal.replace('_', ' ')}"
+        
+        prompt = f"""You are a knowledgeable fitness nutrition coach.
+
+User message: "{message}"
+User profile: {profile_context}
+
+Answer the user's specific question about food, nutrition, or diet directly.
+If they ask about specific foods (e.g. Indian foods, high protein foods), give a detailed list with protein/calorie values per serving.
+If they ask about water intake, give personalized advice based on their weight.
+Be specific, practical, and helpful. Use emojis for readability.
+Keep responses under 200 words."""
+
+        return self._query_ollama(prompt)
+    
     def generate_general_response(self, message, user_profile_data):
-        """Generate general fitness responses"""
+        """Generate general fitness responses with today's activity context"""
+        
+        # Build enhanced context with today's data
+        context_parts = []
+        if user_profile_data:
+            # Add today's activity summary if available
+            today_activity = user_profile_data.get('today_activity', {})
+            today_nutrition = user_profile_data.get('today_nutrition', {})
+            
+            if today_activity.get('total_reps', 0) > 0 or today_activity.get('total_calories_burned', 0) > 0:
+                context_parts.append(f"Today's workout: {today_activity['total_reps']} total reps, {today_activity['total_calories_burned']} calories burned")
+                if today_activity.get('by_exercise'):
+                    exercises = ", ".join([f"{ex}: {data['reps']} reps" for ex, data in today_activity['by_exercise'].items()])
+                    context_parts.append(f"Exercises completed: {exercises}")
+            
+            if today_nutrition.get('total_calories', 0) > 0:
+                context_parts.append(f"Today's nutrition: {today_nutrition['total_calories']} calories, {today_nutrition['total_protein']}g protein")
+        
+        today_context = " | ".join(context_parts) if context_parts else "No activity tracked today"
         
         prompt = f"""You are an AI fitness trainer for a modern gym app.
         
 User message: "{message}"
 User profile: {user_profile_data}
+Today's Progress: {today_context}
 
 Features available:
 - Real-time pose correction with MediaPipe
-- Voice calorie tracking
+- Voice calorie tracking  
 - Rep counting for 5 exercises
 - One rep max calculator
 
-Be encouraging, knowledgeable, and reference our app features when helpful.
+Be encouraging, knowledgeable, and reference today's progress when relevant.
+If user has completed workouts today, congratulate them and provide insights.
 Keep responses under 150 words."""
 
         return self._query_ollama(prompt)
     
     def _query_ollama(self, prompt):
-        """Query Ollama local LLM for fitness responses with fallback"""
+        """Query Ollama local LLM for fitness responses"""
+        if not self.ollama_available:
+            return self._get_offline_response(prompt)
+            
         try:
             payload = {
-                "model": "llama3.2",  # Default model, can be changed
+                "model": self.ollama_model,
                 "prompt": prompt,
                 "stream": False,
                 "options": {
                     "temperature": 0.7,
                     "top_p": 0.9,
-                    "max_tokens": 500
+                    "max_tokens": 500,
+                    "num_ctx": 2048
                 }
             }
             
-            print(f"DEBUG: Calling Ollama with prompt: {prompt[:100]}...")
             response = requests.post(
                 self.ollama_url,
                 json=payload,
-                timeout=15  # Ollama might be slower locally
+                timeout=60  # Allow time for model loading on first query
             )
             
             if response.status_code == 200:
                 data = response.json()
                 result = data.get('response', '').strip()
-                print(f"DEBUG: Ollama responded with: {result[:100]}...")
-                return result
+                if result:
+                    return result
+                else:
+                    return self._get_offline_response(prompt)
             else:
-                print(f"Ollama error: {response.status_code}")
+                print(f"Ollama API error: {response.status_code}")
                 return self._get_offline_response(prompt)
                 
         except requests.exceptions.ConnectionError:
-            print("DEBUG: Ollama not running - using offline responses")
+            print("Ollama not running - using offline responses")
+            return self._get_offline_response(prompt)
+        except requests.exceptions.Timeout:
+            print("Ollama request timed out - using offline responses")
             return self._get_offline_response(prompt)
         except Exception as e:
-            print(f"DEBUG: Ollama error: {e}")
+            print(f"Ollama error: {e}")
             return self._get_offline_response(prompt)
     
     def _get_offline_response(self, prompt):
         """Provide built-in responses for demo when API is unavailable"""
         prompt_lower = prompt.lower()
         
+        # Extract just the user message from the prompt to avoid matching keywords
+        # in the prompt template itself (e.g. "You are an AI fitness trainer")
+        user_msg = ""
+        msg_match = re.search(r'user message:\s*"(.+?)"', prompt_lower)
+        if msg_match:
+            user_msg = msg_match.group(1)
+        
         # Check if this is a non-fitness question being processed - use word boundaries
-        if any(re.search(r'\b' + word + r'\b', prompt_lower) for word in ['language model', 'llm', 'ai', 'technology', 'computer']):
+        if any(re.search(r'\b' + word + r'\b', user_msg) for word in ['language model', 'llm', 'ai', 'technology', 'computer']):
             # For non-fitness questions, use the redirect method
-            if re.search(r'\b(language model|llm)\b', prompt_lower):
+            if re.search(r'\b(language model|llm)\b', user_msg):
                 return self.handle_non_fitness_with_redirect("what is large language model")
-            elif re.search(r'\b(technology|computer)\b', prompt_lower):
+            elif re.search(r'\b(technology|computer)\b', user_msg):
                 return self.handle_non_fitness_with_redirect("technology question")
             else:
                 # Handle general AI questions or fallback
                 return self.handle_non_fitness_with_redirect("ai question")
         
         # Workout-related responses
-        elif any(word in prompt_lower for word in ['workout', 'exercise', 'squat', 'pushup', 'curl']):
+        elif any(word in user_msg for word in ['workout', 'exercise', 'squat', 'pushup', 'curl']):
             return """💪 **Great question about workouts!**
 
 Here are some effective exercises you can try:
@@ -338,20 +435,60 @@ Here are some effective exercises you can try:
 Start with 3 sets of 8-12 reps. Our pose detection will help you maintain perfect form!"""
 
         # Nutrition-related responses  
-        elif any(word in prompt_lower for word in ['nutrition', 'calories', 'diet', 'protein']):
-            return """🍎 **Nutrition is key to your fitness success!**
+        elif any(word in user_msg for word in ['nutrition', 'calories', 'diet', 'protein', 'food', 'eat', 'meal']):
+            return """🍎 **Nutrition Guide for Fitness Enthusiasts!**
 
-**General Guidelines:**
+🥩 **High Protein Foods:**
+- Chicken breast: 31g protein per 100g
+- Eggs: 13g protein per 2 eggs
+- Paneer: 18g protein per 100g
+- Greek yogurt/Curd: 10g protein per 100g
+- Dal/Lentils: 9g protein per 100g (cooked)
+- Chickpeas (Chana): 19g protein per 100g
+- Soya chunks: 52g protein per 100g
+- Fish/Tuna: 26g protein per 100g
+- Whey protein: 24g per scoop
+
+📊 **General Guidelines:**
 - Eat 1.6-2.2g protein per kg body weight
 - Stay hydrated: 35ml water per kg body weight
-- Eat within 30 mins post-workout
+- Eat protein within 30 mins post-workout
+- Split protein across 4-5 meals for better absorption
 
 📱 **Use Our Voice Tracker:**
-- Say "I ate 25g olive oil" (225 calories)
-- Real-time nutrition tracking
-- Accurate calorie calculations
+Say your meals aloud and let AI track your calories automatically!
 
-**Pro Tip:** Use our calorie tracker to log your meals easily. Just speak into the microphone and let AI do the rest!"""
+💡 **Pro Tip:** Set up your profile for a personalized nutrition plan with exact macro targets!"""
+
+        # Water/hydration responses
+        elif any(word in user_msg for word in ['water', 'hydration', 'hydrate', 'drink', 'thirst']):
+            return """💧 **Hydration Guide for Active People:**
+
+**General Rule:** Drink **35ml of water per kg of body weight** daily.
+
+📊 **Quick Reference:**
+- 60kg → ~2.1 liters/day
+- 70kg → ~2.5 liters/day
+- 80kg → ~2.8 liters/day
+- 90kg → ~3.2 liters/day
+- 100kg → ~3.5 liters/day
+
+🏋️ **During Workouts:**
+- Drink 200-300ml **before** exercise
+- Sip 150-200ml every **15-20 minutes** during exercise
+- Drink 500ml **after** your workout
+
+⚡ **Signs You Need More Water:**
+- Dark yellow urine
+- Feeling fatigued or dizzy
+- Dry mouth or headaches
+- Decreased workout performance
+
+💡 **Pro Tips:**
+- Start your day with 500ml of water
+- Keep a water bottle during workouts
+- Set up your profile for a personalized recommendation!
+- Add electrolytes for intense sessions (45+ mins)"""
 
         # General fitness responses
         else:
@@ -376,3 +513,125 @@ Try our voice calorie tracker or ask me about specific exercises. I'm here to he
             return "Profile not set up"
         
         return f"Weight: {self.user_data.get('weight', 'N/A')}kg | Goal: {self.user_data.get('primary_goal', 'N/A')}"
+
+    # ── Streaming support ──────────────────────────────────────────────
+    def _build_prompt(self, message, user_profile_data=None):
+        """Build the prompt for Ollama based on message routing (same logic as process_message)"""
+        message_lower = message.lower()
+
+        # Sleep and lifestyle
+        if any(kw in message_lower for kw in ['sleep', 'rest', 'recovery', 'tired', 'time management', 'busy', 'schedule']):
+            return self._general_prompt(message, user_profile_data)
+        # Fat loss
+        elif any(kw in message_lower for kw in ['lose fat', 'fat loss', 'cutting', 'lose weight']):
+            return None  # hardcoded response, no streaming needed
+        # Calorie calculator
+        elif any(kw in message_lower for kw in ['daily calories', 'how many calories', 'nutrition plan', 'macros', 'diet plan', 'bmr', 'tdee', 'meal plan', 'calorie goal', 'calorie target']):
+            return None
+        # Nutrition / food questions
+        elif any(kw in message_lower for kw in ['protein', 'carbs', 'food', 'foods', 'eat', 'nutrition', 'diet', 'calorie', 'water', 'hydration', 'drink', 'snack', 'meal', 'recipe', 'supplement', 'creatine', 'whey', 'vitamin']):
+            return self._nutrition_prompt(message, user_profile_data)
+        # Workouts
+        elif any(kw in message_lower for kw in ['workout', 'exercise', 'squat', 'pushup', 'curl', 'rep']):
+            return self._workout_prompt(message, user_profile_data)
+        # Non-fitness redirect
+        elif any(re.search(r'\b' + kw + r'\b', message_lower) for kw in ['language model', 'llm', 'ai', 'technology', 'computer', 'programming']):
+            return None
+        # General
+        else:
+            return self._general_prompt(message, user_profile_data)
+
+    def _nutrition_prompt(self, message, user_profile_data):
+        profile_context = "No profile set up"
+        if user_profile_data:
+            weight = user_profile_data.get('weight', 'unknown')
+            goal = user_profile_data.get('primary_goal_code', 'general fitness')
+            profile_context = f"Weight: {weight}kg, Goal: {goal.replace('_', ' ')}"
+        return f"""You are a knowledgeable fitness nutrition coach.
+
+User message: "{message}"
+User profile: {profile_context}
+
+Answer the user's specific question about food, nutrition, or diet directly.
+If they ask about specific foods (e.g. Indian foods, high protein foods), give a detailed list with protein/calorie values per serving.
+If they ask about water intake, give personalized advice based on their weight.
+Be specific, practical, and helpful. Use emojis for readability.
+Keep responses under 200 words."""
+
+    def _workout_prompt(self, message, user_profile_data):
+        today_summary = "No workouts completed today yet"
+        if user_profile_data and user_profile_data.get('today_activity', {}).get('total_reps', 0) > 0:
+            activity = user_profile_data['today_activity']
+            today_summary = f"Today: {activity['total_reps']} total reps, {activity['total_calories_burned']} calories burned"
+        return f"""You are a fitness trainer for a gym app with OpenCV pose detection.
+
+User message: "{message}"
+User profile: {user_profile_data}
+Today's Progress: {today_summary}
+
+Available workouts with real-time pose correction:
+- Squats, Push-ups, Bicep Curls, Hammer Curls, Side Raises
+
+Provide specific, actionable fitness advice. Keep responses under 200 words and gym-focused."""
+
+    def _general_prompt(self, message, user_profile_data):
+        context_parts = []
+        if user_profile_data:
+            today_activity = user_profile_data.get('today_activity', {})
+            today_nutrition = user_profile_data.get('today_nutrition', {})
+            if today_activity.get('total_reps', 0) > 0:
+                context_parts.append(f"Today's workout: {today_activity['total_reps']} reps, {today_activity['total_calories_burned']} cal burned")
+            if today_nutrition.get('total_calories', 0) > 0:
+                context_parts.append(f"Nutrition: {today_nutrition['total_calories']} cal, {today_nutrition['total_protein']}g protein")
+        today_context = " | ".join(context_parts) if context_parts else "No activity tracked today"
+        return f"""You are an AI fitness trainer for a modern gym app.
+
+User message: "{message}"
+User profile: {user_profile_data}
+Today's Progress: {today_context}
+
+Be encouraging, knowledgeable, and reference today's progress when relevant.
+Keep responses under 150 words."""
+
+    def stream_message(self, message, user_profile_data=None):
+        """Stream response from Ollama token-by-token. Yields text chunks.
+        Falls back to yielding the full non-streamed response at once."""
+        prompt = self._build_prompt(message, user_profile_data)
+        if prompt is None:
+            # Hardcoded response – yield all at once
+            yield self.process_message(message, user_profile_data)
+            return
+
+        if not self.ollama_available:
+            yield self._get_offline_response(prompt)
+            return
+
+        try:
+            payload = {
+                "model": self.ollama_model,
+                "prompt": prompt,
+                "stream": True,
+                "options": {
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "num_ctx": 2048
+                }
+            }
+            with requests.post(self.ollama_url, json=payload, stream=True, timeout=60) as resp:
+                if resp.status_code != 200:
+                    yield self._get_offline_response(prompt)
+                    return
+                for line in resp.iter_lines():
+                    if line:
+                        try:
+                            data = json.loads(line)
+                            token = data.get('response', '')
+                            if token:
+                                yield token
+                            if data.get('done', False):
+                                return
+                        except json.JSONDecodeError:
+                            continue
+        except Exception as e:
+            print(f"Ollama stream error: {e}")
+            yield self._get_offline_response(prompt)

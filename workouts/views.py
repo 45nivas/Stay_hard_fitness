@@ -7,25 +7,6 @@ from django.contrib import messages
 import cv2
 import time
 import numpy as np
-
-# Import emergency camera mode
-try:
-    from .emergency_camera import raw_camera_stream
-    EMERGENCY_CAMERA_AVAILABLE = True
-    print("EmergencyCamera: Raw camera mode available for lag issues")
-except ImportError as e:
-    EMERGENCY_CAMERA_AVAILABLE = False
-    print(f"EmergencyCamera: Not available - {e}")
-
-# Import camera optimizer for zero-buffering
-try:
-    from .camera_optimizer import ZeroBufferCamera
-    CAMERA_OPTIMIZER_AVAILABLE = True
-    print("CameraOptimizer: Zero-buffer camera available")
-except ImportError as e:
-    CAMERA_OPTIMIZER_AVAILABLE = False
-    print(f"CameraOptimizer: Not available - {e}")
-
 try:
     # MediaPipe now working after fixing NumPy compatibility
     import mediapipe as mp
@@ -42,16 +23,7 @@ except ImportError as e:
     REP_COUNTER_AVAILABLE = False
     print(f"RepCounter not available: {e}")
     RepCounter = None
-
-try:
-    from .intelligent_posture_coach import IntelligentPostureCoach
-    INTELLIGENT_POSTURE_COACH_AVAILABLE = True  
-    print("IntelligentPostureCoach enabled - AI-powered posture analysis ready!")
-except ImportError as e:
-    INTELLIGENT_POSTURE_COACH_AVAILABLE = False
-    print(f"IntelligentPostureCoach not available: {e}")
-    IntelligentPostureCoach = None
-from .models import UserProfile, ChatSession, ChatMessage, MealLog, FoodItem, DailySummary, ExerciseLog
+from .models import UserProfile, ChatSession, ChatMessage, MealLog, FoodItem, DailySummary
 from .forms import UserProfileForm, ChatMessageForm
 from .fitness_chatbot import FitnessChatbot
 import json
@@ -61,24 +33,6 @@ import requests
 from dotenv import load_dotenv
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-
-# Simple in-memory tracker for active pose sessions
-ACTIVE_POSE_SESSIONS = {}
-
-# MET (Metabolic Equivalent of Task) values for different exercises
-EXERCISE_MET = {
-    'pushups': 8.0,
-    'squats': 5.5,
-    'bicep_curls': 3.5,
-    'hammer_curls': 3.5,
-    'side_raises': 3.0,
-}
-
-def estimate_calories_burned(workout_name, start_dt, end_dt, weight_kg):
-    """Estimate calories burned using MET values"""
-    duration_hours = max((end_dt - start_dt).total_seconds() / 3600.0, 0.0001)
-    met = EXERCISE_MET.get(workout_name, 3.0)
-    return round(met * weight_kg * duration_hours, 1)
 
 def home(request):
     if request.user.is_authenticated:
@@ -114,274 +68,11 @@ def workout_selection(request):
 def workout_page(request, workout_name):
     return render(request, 'workout_page.html', {'workout_name': workout_name})
 
-def gen_frames(user_id, workout_name):
-    """
-    ULTRA-OPTIMIZED frame generation with multiple fallback modes
-    """
-    # EMERGENCY MODE: For severe lag issues, use raw camera
-    if EMERGENCY_CAMERA_AVAILABLE and workout_name.endswith('_emergency'):
-        print("🚨 EMERGENCY RAW CAMERA MODE ACTIVATED")
-        return raw_camera_stream()
+def gen_frames(workout_name):
+    # Initialize MediaPipe and rep counter
+    cap = cv2.VideoCapture(0)
     
-    # Try to use the optimized camera first
-    if CAMERA_OPTIMIZER_AVAILABLE:
-        return gen_frames_optimized(user_id, workout_name)
-    else:
-        return gen_frames_fallback(user_id, workout_name)
-
-def gen_frames_optimized(user_id, workout_name):
-    """Zero-buffer camera implementation"""
-    print("🚀 Using optimized zero-buffer camera")
-    
-    camera = None
-    try:
-        # Initialize zero-buffer camera
-        camera = ZeroBufferCamera(0)
-        if not camera.start():
-            print("❌ Optimized camera failed, falling back")
-            return gen_frames_fallback(user_id, workout_name)
-        
-        # Initialize MediaPipe and components
-        if MEDIAPIPE_AVAILABLE:
-            mp_pose = mp.solutions.pose
-            pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
-            mp_drawing = mp.solutions.drawing_utils
-            
-            if REP_COUNTER_AVAILABLE:
-                counter = RepCounter(workout_name)
-            else:
-                counter = None
-                
-            if INTELLIGENT_POSTURE_COACH_AVAILABLE:
-                # Get user profile for personalized coaching
-                user_profile_data = None
-                try:
-                    user_profile = UserProfile.objects.get(user_id=user_id)
-                    user_profile_data = {
-                        'fitness_level': user_profile.fitness_level,
-                        'primary_goal': user_profile.primary_goal,
-                        'height': user_profile.height,
-                        'weight': user_profile.weight
-                    }
-                except UserProfile.DoesNotExist:
-                    pass
-                
-                posture_coach = IntelligentPostureCoach(workout_name, user_profile_data)
-            else:
-                posture_coach = None
-        else:
-            pose = None
-            mp_drawing = None
-            counter = None
-            posture_coach = None
-        
-        # Session tracking
-        session_key = (user_id, workout_name)
-        session_started = False
-        session_start = timezone.now()
-        
-        # Initialize session tracking
-        ACTIVE_POSE_SESSIONS[session_key] = {
-            'start': session_start,
-            'left': 0,
-            'right': 0,
-            'total': 0,
-        }
-        session_started = True
-        
-        frame_count = 0
-        print("📹 Starting optimized video stream...")
-        
-        while True:
-            # Get fresh frame from optimized camera
-            ret, frame = camera.get_frame()
-            if not ret or frame is None:
-                time.sleep(0.01)
-                continue
-            
-            frame_count += 1
-            
-            # Flip frame horizontally for mirror effect
-            frame = cv2.flip(frame, 1)
-            
-            if MEDIAPIPE_AVAILABLE and pose:
-                # Convert BGR to RGB
-                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                image.flags.writeable = False
-                
-                # Make detection
-                results = pose.process(image)
-                
-                # Convert back to BGR
-                image.flags.writeable = True
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                
-                # Process landmarks for rep counting
-                if results.pose_landmarks and counter:
-                    counter.process_frame(results.pose_landmarks)
-                    
-                    # Update active session counts
-                    ACTIVE_POSE_SESSIONS[session_key]['left'] = getattr(counter, 'left_rep_count', 0)
-                    ACTIVE_POSE_SESSIONS[session_key]['right'] = getattr(counter, 'right_rep_count', 0)
-                    ACTIVE_POSE_SESSIONS[session_key]['total'] = getattr(counter, 'rep_count', 0)
-                
-                # AI-powered posture analysis
-                if results.pose_landmarks and posture_coach:
-                    posture_coach.analyze_pose_with_ai(results.pose_landmarks.landmark)
-                
-                # Draw pose landmarks
-                if results.pose_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2),
-                        mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
-                    )
-                
-                # Add workout info overlay
-                cv2.rectangle(image, (0, 0), (450, 140), (0, 0, 0), -1)
-                cv2.putText(image, f'Workout: {workout_name.replace("_", " ").title()}', 
-                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                
-                # Display reps
-                if counter:
-                    if hasattr(counter, 'left_rep_count') and hasattr(counter, 'right_rep_count'):
-                        cv2.putText(image, f'Left: {counter.left_rep_count} | Right: {counter.right_rep_count}', 
-                                   (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                    else:
-                        cv2.putText(image, f'Reps: {getattr(counter, "rep_count", 0)}', 
-                                   (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                
-                # Add performance indicator
-                if frame_count % 30 == 0:  # Every 30 frames
-                    stats = camera.get_performance_stats()
-                    cv2.putText(image, f'FPS: {stats["fps"]:.1f}', 
-                               (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-                    if stats["drop_rate"] > 10:
-                        cv2.putText(image, f'Drops: {stats["drop_rate"]:.1f}%', 
-                                   (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            else:
-                image = frame
-                cv2.rectangle(image, (0, 0), (450, 100), (0, 0, 0), -1)
-                cv2.putText(image, f'Workout: {workout_name.replace("_", " ").title()}', 
-                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                cv2.putText(image, 'Pose detection unavailable', 
-                           (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-            
-            # Ultra-fast JPEG encoding
-            encode_param = [
-                cv2.IMWRITE_JPEG_QUALITY, 50,  # Lower quality for speed
-                cv2.IMWRITE_JPEG_OPTIMIZE, 1
-            ]
-            ret, buffer = cv2.imencode('.jpg', image, encode_param)
-            if ret:
-                frame_bytes = buffer.tobytes()
-                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            
-            # Prevent memory buildup
-            if frame_count % 100 == 0:
-                import gc
-                gc.collect()
-        
-    except Exception as e:
-        print(f"Optimized camera error: {e}")
-        # Fall back to standard implementation
-        if camera:
-            camera.stop()
-        return gen_frames_fallback(user_id, workout_name)
-    finally:
-        if camera:
-            camera.stop()
-        # Clean up session
-        if session_started and session_key in ACTIVE_POSE_SESSIONS:
-            try:
-                # Save exercise data before cleanup
-                session_data = ACTIVE_POSE_SESSIONS[session_key]
-                session_end = timezone.now()
-                duration_seconds = (session_end - session_data['start']).total_seconds()
-                
-                if duration_seconds > 5 and session_data['total'] > 0:
-                    ExerciseLog.objects.create(
-                        user_id=user_id,
-                        exercise=workout_name,
-                        reps=session_data['total'],
-                        reps_left=session_data.get('left', 0),
-                        reps_right=session_data.get('right', 0),
-                        duration_seconds=duration_seconds,
-                        calories_burned=estimate_calories_burned(workout_name, session_data['start'], session_end, 70)
-                    )
-                    print(f"Exercise session saved: {workout_name} - {session_data['total']} reps")
-                
-                del ACTIVE_POSE_SESSIONS[session_key]
-            except Exception as e:
-                print(f"Session cleanup error: {e}")
-
-def gen_frames_fallback(user_id, workout_name):
-    """EMERGENCY LOW-LATENCY camera implementation for persistent lag issues"""
-    print("� EMERGENCY MODE: Ultra-minimal camera processing")
-    
-    # Try DirectShow backend first (Windows-specific optimization)
-    cap = None
-    backends_to_try = [
-        (cv2.CAP_DSHOW, "DirectShow (Windows)"),
-        (cv2.CAP_MSMF, "Media Foundation (Windows)"), 
-        (cv2.CAP_V4L2, "Video4Linux"),
-        (cv2.CAP_ANY, "Default")
-    ]
-    
-    for backend, name in backends_to_try:
-        try:
-            print(f"🔄 Trying {name} backend...")
-            cap = cv2.VideoCapture(0, backend)
-            if cap.isOpened():
-                print(f"✅ {name} backend working!")
-                break
-            else:
-                cap.release()
-        except:
-            continue
-    
-    if not cap or not cap.isOpened():
-        print("❌ All camera backends failed!")
-        return
-    
-    # EMERGENCY ULTRA-MINIMAL SETTINGS
-    print("⚡ Applying EMERGENCY camera settings...")
-    try:
-        # Absolute minimum settings for maximum speed
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)          # Single frame buffer
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)       # Very low resolution
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)      # Very low resolution  
-        cap.set(cv2.CAP_PROP_FPS, 10)                # Very low FPS
-        cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.1)     # Minimal auto-exposure
-        cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)           # Disable autofocus
-        
-        # Try to set specific codec for speed
-        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('Y', 'U', 'Y', 'V'))
-        
-        print("🔥 AGGRESSIVE camera flush (may take 5-10 seconds)...")
-        # Extremely aggressive warm-up
-        for i in range(20):
-            ret, _ = cap.read()
-            if i % 5 == 0:
-                print(f"   Flush progress: {i+1}/20")
-        
-        # Final buffer clear
-        for _ in range(5):
-            cap.grab()
-        
-        print("✅ Emergency camera setup complete!")
-        
-    except Exception as e:
-        print(f"⚠️ Settings failed: {e}, continuing with defaults...")
-    
-    # Check final camera state
-    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    actual_fps = cap.get(cv2.CAP_PROP_FPS)
-    buffer_size = cap.get(cv2.CAP_PROP_BUFFERSIZE)
-    
-    print(f"📊 Final settings: {actual_width}x{actual_height} @ {actual_fps}fps, buffer: {buffer_size}")
-    
+    # Check if camera is available
     camera_available = cap.isOpened()
     
     if MEDIAPIPE_AVAILABLE:
@@ -394,46 +85,13 @@ def gen_frames_fallback(user_id, workout_name):
             counter = RepCounter(workout_name)
         else:
             counter = None
-            
-        # Initialize intelligent posture coach for AI-powered feedback (if available)
-        if INTELLIGENT_POSTURE_COACH_AVAILABLE:
-            # Get user profile for personalized coaching
-            user_profile_data = None
-            try:
-                user_profile = UserProfile.objects.get(user_id=user_id)
-                user_profile_data = {
-                    'fitness_level': user_profile.fitness_level,
-                    'primary_goal': user_profile.primary_goal,
-                    'height': user_profile.height,
-                    'weight': user_profile.weight
-                }
-            except UserProfile.DoesNotExist:
-                pass
-            
-            posture_coach = IntelligentPostureCoach(workout_name, user_profile_data)
-        else:
-            posture_coach = None
     else:
         # Fallback when MediaPipe is not available
         pose = None
         mp_drawing = None
         counter = None
-        posture_coach = None
-    
-    # Session tracking variables
-    session_key = (user_id, workout_name)
-    session_started = False
-    session_start = timezone.now()
     
     try:
-        # Initialize active session tracking
-        ACTIVE_POSE_SESSIONS[session_key] = {
-            'start': session_start,
-            'left': 0,
-            'right': 0,
-            'total': 0,
-        }
-        session_started = True
         # If no camera available, create a demo/placeholder frame
         if not camera_available:
             # Create a black placeholder frame with instructions
@@ -479,110 +137,14 @@ def gen_frames_fallback(user_id, workout_name):
                 yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
                 time.sleep(0.1)  # Small delay to prevent overwhelming the connection
         
-        # 🚨 EMERGENCY ULTRA-MINIMAL PROCESSING MODE
-        print("🚨 Starting EMERGENCY minimal processing mode...")
-        frame_count = 0
-        last_stats_time = time.time()
-        processing_enabled = True  # Can be toggled for performance
-        
-        # Extremely aggressive frame skipping
-        SKIP_FRAMES = 3  # Process only every 3rd frame
-        frame_skip_counter = 0
-        
+        # Normal camera processing
         while True:
-            # EMERGENCY: Grab multiple frames and take only the latest
-            for _ in range(3):  # Grab 3 frames to get the freshest
-                if not cap.grab():
-                    continue
-            
-            # Only retrieve and process every Nth frame
-            frame_skip_counter += 1
-            if frame_skip_counter < SKIP_FRAMES:
-                continue
-            frame_skip_counter = 0
-            
-            # Retrieve the latest frame
-            success, frame = cap.retrieve()
+            success, frame = cap.read()
             if not success:
-                # Emergency fallback: try direct read
-                success, frame = cap.read()
-                if not success:
-                    print("📹 Frame read failed, continuing...")
-                    time.sleep(0.05)
-                    continue
-                # Immediately clear buffer after direct read
-                for _ in range(2):
-                    cap.grab()
-            
-            frame_count += 1
-            
-            # Flip frame for mirror effect (minimal processing)
+                break
+                
+            # Flip frame horizontally for mirror effect
             frame = cv2.flip(frame, 1)
-            
-            # CONDITIONAL PROCESSING: Only do pose detection every 5th processed frame
-            do_pose_processing = (frame_count % 5 == 0) and processing_enabled and MEDIAPIPE_AVAILABLE
-            
-            if do_pose_processing and pose:
-                try:
-                    # Minimal MediaPipe processing
-                    image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    image_rgb.flags.writeable = False
-                    
-                    results = pose.process(image_rgb)
-                    
-                    image_rgb.flags.writeable = True
-                    image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
-                    
-                    # Minimal landmark processing
-                    if results.pose_landmarks:
-                        # Only draw landmarks, skip rep counting for speed
-                        mp_drawing.draw_landmarks(
-                            image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                            mp_drawing.DrawingSpec(color=(0,255,0), thickness=1, circle_radius=1),
-                            mp_drawing.DrawingSpec(color=(0,0,255), thickness=1)
-                        )
-                    
-                    # Minimal overlay
-                    cv2.rectangle(image, (0, 0), (300, 50), (0, 0, 0), -1)
-                    cv2.putText(image, f'EMERGENCY MODE - Frame: {frame_count}', 
-                               (5, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                    cv2.putText(image, f'Processing: {do_pose_processing}', 
-                               (5, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-                               
-                except Exception as e:
-                    print(f"⚠️ Pose processing error: {e}")
-                    image = frame  # Fallback to raw frame
-            else:
-                # NO PROCESSING MODE - just raw camera feed
-                image = frame
-                # Minimal status overlay
-                cv2.rectangle(image, (0, 0), (250, 30), (0, 0, 0), -1)
-                cv2.putText(image, f'RAW MODE - Frame: {frame_count}', 
-                           (5, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            
-            # EMERGENCY ENCODING: Lowest possible quality for speed
-            encode_param = [cv2.IMWRITE_JPEG_QUALITY, 30]  # Very low quality
-            ret, buffer = cv2.imencode('.jpg', image, encode_param)
-            if ret:
-                frame_bytes = buffer.tobytes()
-                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            
-            # Performance stats every 10 seconds
-            current_time = time.time()
-            if current_time - last_stats_time > 10:
-                elapsed = current_time - last_stats_time
-                fps = frame_count / elapsed if elapsed > 0 else 0
-                print(f"📊 EMERGENCY MODE Stats: {fps:.1f} FPS, {frame_count} frames in {elapsed:.1f}s")
-                last_stats_time = current_time
-                frame_count = 0
-            
-            # Emergency memory management
-            if frame_count % 50 == 0:
-                import gc
-                gc.collect()
-            
-            # Optional: Brief pause to prevent CPU overload
-            time.sleep(0.01)  # 10ms pause
             
             if MEDIAPIPE_AVAILABLE and pose:
                 # Convert BGR to RGB
@@ -600,18 +162,7 @@ def gen_frames_fallback(user_id, workout_name):
                 if results.pose_landmarks and counter:
                     counter.process_frame(results.pose_landmarks)
                     
-                    # Update active session counts
-                    ACTIVE_POSE_SESSIONS[session_key]['left'] = getattr(counter, 'left_rep_count', 0)
-                    ACTIVE_POSE_SESSIONS[session_key]['right'] = getattr(counter, 'right_rep_count', 0)
-                    ACTIVE_POSE_SESSIONS[session_key]['total'] = getattr(counter, 'rep_count', 0)
-                
-                # AI-powered posture analysis for intelligent feedback
-                if results.pose_landmarks and posture_coach:
-                    posture_coach.analyze_pose_with_ai(results.pose_landmarks.landmark)
-                
-
-                # Draw pose landmarks
-                if results.pose_landmarks:
+                    # Draw pose landmarks
                     mp_drawing.draw_landmarks(
                         image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
                         mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2),
@@ -642,54 +193,6 @@ def gen_frames_fallback(user_id, workout_name):
                     for i, tip in enumerate(tips[:3]):  # Show only 3 tips
                         cv2.putText(image, tip, (10, 150 + i*25), 
                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                
-                # Add AI-powered posture feedback overlay (intelligent coaching)
-                if posture_coach:
-                    display_feedback = posture_coach.get_display_feedback()
-                    
-                    # Create intelligent feedback box on the right side
-                    feedback_box_x = image.shape[1] - 380  # Right side of screen
-                    cv2.rectangle(image, (feedback_box_x, 0), (image.shape[1], 140), (30, 30, 50), -1)
-                    
-                    # AI-powered status header
-                    status_text = display_feedback['status']
-                    header_color = display_feedback['color']
-                    
-                    cv2.putText(image, "🤖 AI Coach", (feedback_box_x + 10, 20), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                    cv2.putText(image, status_text, (feedback_box_x + 10, 45), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, header_color, 2)
-                    
-                    # Display intelligent feedback message
-                    feedback_message = display_feedback['message']
-                    
-                    # Word wrap for long messages
-                    words = feedback_message.split(' ')
-                    lines = []
-                    current_line = ""
-                    max_chars = 35  # Characters per line
-                    
-                    for word in words:
-                        if len(current_line + word) < max_chars:
-                            current_line += word + " "
-                        else:
-                            if current_line:
-                                lines.append(current_line.strip())
-                            current_line = word + " "
-                    if current_line:
-                        lines.append(current_line.strip())
-                    
-                    # Display wrapped message lines
-                    for i, line in enumerate(lines[:3]):  # Max 3 lines
-                        y_pos = 70 + i * 18
-                        cv2.putText(image, line, (feedback_box_x + 10, y_pos), 
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-                    
-                    # Show confidence indicator
-                    confidence = display_feedback.get('confidence', 0.5)
-                    conf_text = f"Confidence: {confidence:.1f}"
-                    cv2.putText(image, conf_text, (feedback_box_x + 10, 130), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.3, (200, 200, 200), 1)
             else:
                 # Fallback display when MediaPipe is not available
                 image = frame
@@ -699,152 +202,21 @@ def gen_frames_fallback(user_id, workout_name):
                 cv2.putText(image, 'Pose detection unavailable in this environment', 
                            (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
             
-            # AGGRESSIVE JPEG encoding for maximum speed
-            encode_param = [
-                cv2.IMWRITE_JPEG_QUALITY, 60,  # Lower quality for speed
-                cv2.IMWRITE_JPEG_OPTIMIZE, 1   # Optimize encoding
-            ]
-            ret, buffer = cv2.imencode('.jpg', image, encode_param)
-            if ret:
-                frame = buffer.tobytes()
-                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            
-            # Force garbage collection periodically to prevent memory buildup
-            frame_skip_count += 1
-            if frame_skip_count % 50 == 0:  # Every 50 frames
-                import gc
-                gc.collect()
+            # Encode frame
+            ret, buffer = cv2.imencode('.jpg', image)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
             
     except Exception as e:
         print(f"Error in video generation: {e}")
     finally:
-        try:
-            if counter:
-                counter.cleanup()
-            if posture_coach:
-                posture_coach.cleanup()
-            cap.release()
-        finally:
-            # Persist exercise log if session started
-            if 'session_key' in locals() and session_started and session_key in ACTIVE_POSE_SESSIONS:
-                end_dt = timezone.now()
-                stats = ACTIVE_POSE_SESSIONS.pop(session_key, None)
-                if stats:
-                    total_reps = int(stats['total'])
-                    left_reps = int(stats['left'])
-                    right_reps = int(stats['right'])
-                    
-                    # Fetch user weight for calorie calculation
-                    weight_kg = 70.0  # Default weight
-                    try:
-                        profile = UserProfile.objects.get(user_id=user_id)
-                        weight_kg = float(profile.weight or 70.0)
-                    except UserProfile.DoesNotExist:
-                        pass
-                    
-                    # Calculate calories burned
-                    calories = estimate_calories_burned(workout_name, session_start, end_dt, weight_kg)
-                    
-                    # Save exercise log
-                    ExerciseLog.objects.create(
-                        user_id=user_id,
-                        exercise=workout_name,
-                        reps=total_reps,
-                        reps_left=left_reps,
-                        reps_right=right_reps,
-                        start_time=session_start,
-                        end_time=end_dt,
-                        duration_seconds=int((end_dt - session_start).total_seconds()),
-                        calories_burned=calories,
-                    )
+        if counter:
+            counter.cleanup()
+        cap.release()
 
 @login_required
 def video_feed(request, workout_name):
-    return StreamingHttpResponse(gen_frames(request.user.id, workout_name), content_type='multipart/x-mixed-replace; boundary=frame')
-
-@csrf_exempt
-@login_required
-def complete_workout(request, workout_name):
-    """Manually save workout data when user clicks 'Complete Workout' button"""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'POST method required'}, status=400)
-    
-    try:
-        user_id = request.user.id
-        session_key = f"{user_id}_{workout_name}"
-        
-        # Get session data from in-memory tracker
-        session_data = ACTIVE_POSE_SESSIONS.get(session_key)
-        
-        if not session_data:
-            return JsonResponse({
-                'success': False, 
-                'error': 'No active workout session found. Please start a workout first.'
-            }, status=404)
-        
-        # Extract workout data
-        total_reps = session_data.get('total', 0)
-        left_reps = session_data.get('left', 0)
-        right_reps = session_data.get('right', 0)
-        session_start = session_data.get('start_time')
-        
-        # Calculate duration and calories
-        end_dt = timezone.now()
-        duration_seconds = (end_dt - session_start).total_seconds() if session_start else 0
-        
-        # Get user weight for calorie calculation
-        try:
-            user_profile = UserProfile.objects.get(user_id=user_id)
-            weight_kg = user_profile.weight
-        except UserProfile.DoesNotExist:
-            weight_kg = 70  # Default weight if profile not found
-        
-        calories = estimate_calories_burned(workout_name, session_start, end_dt, weight_kg)
-        
-        # Save to database
-        exercise_log = ExerciseLog.objects.create(
-            user_id=user_id,
-            exercise=workout_name,
-            reps=total_reps,
-            reps_left=left_reps,
-            reps_right=right_reps,
-            start_time=session_start,
-            end_time=end_dt,
-            duration_seconds=int(duration_seconds),
-            calories_burned=round(calories, 2)
-        )
-        
-        # Clear session data
-        del ACTIVE_POSE_SESSIONS[session_key]
-        
-        print(f"✅ Workout saved: {workout_name} - {total_reps} reps, {calories:.1f} cal")
-        
-        return JsonResponse({
-            'success': True,
-            'total_reps': total_reps,
-            'left_reps': left_reps,
-            'right_reps': right_reps,
-            'calories_burned': round(calories, 2),
-            'duration_seconds': int(duration_seconds),
-            'message': 'Workout saved successfully!'
-        })
-        
-    except Exception as e:
-        print(f"❌ Error saving workout: {e}")
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-
-@login_required
-def emergency_video_feed(request, workout_name):
-    """Emergency raw camera feed for severe lag issues"""
-    if EMERGENCY_CAMERA_AVAILABLE:
-        print(f"🚨 Emergency video feed requested for {workout_name}")
-        return StreamingHttpResponse(raw_camera_stream(), content_type='multipart/x-mixed-replace; boundary=frame')
-    else:
-        # Fallback to regular feed
-        return video_feed(request, workout_name)
+    return StreamingHttpResponse(gen_frames(workout_name), content_type='multipart/x-mixed-replace; boundary=frame')
 
 @login_required
 def fitness_chat(request):
@@ -898,40 +270,6 @@ def fitness_chat(request):
             user_profile_data = None
             try:
                 user_profile = UserProfile.objects.get(user=request.user)
-                
-                # Get today's nutrition data
-                today = timezone.now().date()
-                meal_logs = MealLog.objects.filter(user=request.user, date=today)
-                nutrition_data = {
-                    'total_calories': sum(log.calories for log in meal_logs),
-                    'total_protein': sum(log.protein for log in meal_logs),
-                    'total_carbs': sum(log.carbs for log in meal_logs),
-                    'total_fats': sum(log.fat for log in meal_logs),
-                    'total_fiber': sum(log.fiber for log in meal_logs),
-                    'total_sugar': sum(log.sugar for log in meal_logs),
-                }
-                
-                # Get today's exercise activity
-                exercise_logs = ExerciseLog.objects.filter(user=request.user, start_time__date=today)
-                activity_by_exercise = {}
-                total_calories_burned = 0.0
-                total_exercise_reps = 0
-                
-                for log in exercise_logs:
-                    exercise_data = activity_by_exercise.setdefault(log.exercise, {
-                        'reps': 0, 
-                        'reps_left': 0, 
-                        'reps_right': 0, 
-                        'calories': 0.0
-                    })
-                    exercise_data['reps'] += log.reps
-                    exercise_data['reps_left'] += log.reps_left
-                    exercise_data['reps_right'] += log.reps_right
-                    exercise_data['calories'] += log.calories_burned
-                    
-                    total_calories_burned += log.calories_burned
-                    total_exercise_reps += log.reps
-                
                 user_profile_data = {
                     'height': user_profile.height,
                     'weight': user_profile.weight,
@@ -946,14 +284,7 @@ def fitness_chat(request):
                     'equipment_available': user_profile.equipment_available.split(',') if user_profile.equipment_available else [],
                     'calories_per_day': user_profile.calories_per_day,
                     'bmi': user_profile.bmi,
-                    'bmi_category': user_profile.bmi_category,
-                    # Enhanced context for LLM with today's data
-                    'today_nutrition': nutrition_data,
-                    'today_activity': {
-                        'total_calories_burned': round(total_calories_burned, 1),
-                        'total_reps': total_exercise_reps,
-                        'by_exercise': activity_by_exercise
-                    }
+                    'bmi_category': user_profile.bmi_category
                 }
             except UserProfile.DoesNotExist:
                 pass
@@ -1010,104 +341,6 @@ def fitness_chat(request):
     }
     
     return render(request, 'fitness_chat.html', context)
-
-
-@login_required
-def fitness_chat_stream(request):
-    """SSE streaming endpoint for chatbot – streams Ollama tokens in real time"""
-    if request.method != 'POST':
-        return JsonResponse({'error': 'POST required'}, status=405)
-
-    user_message = request.POST.get('message', '').strip()
-    if not user_message:
-        return JsonResponse({'error': 'Empty message'}, status=400)
-
-    # Save chat session
-    session_id = request.session.get('chat_session_id')
-    if not session_id:
-        session_id = str(uuid.uuid4())
-        request.session['chat_session_id'] = session_id
-    session, _ = ChatSession.objects.get_or_create(
-        session_id=session_id, defaults={'user': request.user}
-    )
-
-    # Build user profile data (same as fitness_chat view)
-    chatbot = FitnessChatbot()
-    user_profile_data = None
-    try:
-        user_profile = UserProfile.objects.get(user=request.user)
-        chatbot.user_data = {
-            'height': user_profile.height,
-            'weight': user_profile.weight,
-            'age': user_profile.age,
-            'gender': user_profile.get_gender_display(),
-            'fitness_level': user_profile.get_fitness_level_display(),
-            'goals': [user_profile.get_primary_goal_display()],
-            'primary_goal': user_profile.primary_goal,
-        }
-
-        today = timezone.now().date()
-        meal_logs = MealLog.objects.filter(user=request.user, date=today)
-        nutrition_data = {
-            'total_calories': sum(l.calories for l in meal_logs),
-            'total_protein': sum(l.protein for l in meal_logs),
-            'total_carbs': sum(l.carbs for l in meal_logs),
-            'total_fats': sum(l.fat for l in meal_logs),
-        }
-        exercise_logs = ExerciseLog.objects.filter(user=request.user, start_time__date=today)
-        activity_by_exercise = {}
-        total_cal = 0.0
-        total_reps = 0
-        for log in exercise_logs:
-            ed = activity_by_exercise.setdefault(log.exercise, {'reps': 0, 'reps_left': 0, 'reps_right': 0, 'calories': 0.0})
-            ed['reps'] += log.reps
-            ed['reps_left'] += log.reps_left
-            ed['reps_right'] += log.reps_right
-            ed['calories'] += log.calories_burned
-            total_cal += log.calories_burned
-            total_reps += log.reps
-
-        user_profile_data = {
-            'height': user_profile.height,
-            'weight': user_profile.weight,
-            'age': user_profile.age,
-            'gender': user_profile.get_gender_display(),
-            'fitness_level': user_profile.get_fitness_level_display(),
-            'primary_goal': user_profile.get_primary_goal_display(),
-            'primary_goal_code': user_profile.primary_goal,
-            'injuries_or_limitations': user_profile.injuries_or_limitations,
-            'available_time': user_profile.available_time,
-            'weak_muscles': user_profile.weak_muscles.split(',') if user_profile.weak_muscles else [],
-            'equipment_available': user_profile.equipment_available.split(',') if user_profile.equipment_available else [],
-            'calories_per_day': user_profile.calories_per_day,
-            'bmi': user_profile.bmi,
-            'bmi_category': user_profile.bmi_category,
-            'today_nutrition': nutrition_data,
-            'today_activity': {
-                'total_calories_burned': round(total_cal, 1),
-                'total_reps': total_reps,
-                'by_exercise': activity_by_exercise,
-            },
-        }
-    except UserProfile.DoesNotExist:
-        pass
-
-    def event_stream():
-        full_response = []
-        for chunk in chatbot.stream_message(user_message, user_profile_data):
-            full_response.append(chunk)
-            # SSE format: data: <payload>\n\n
-            yield f"data: {json.dumps({'token': chunk})}\n\n"
-        # Final event with the complete response for saving
-        complete = ''.join(full_response)
-        yield f"data: {json.dumps({'done': True, 'full_response': complete})}\n\n"
-        # Save chat message to DB
-        ChatMessage.objects.create(session=session, message=user_message, response=complete)
-
-    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
-    response['Cache-Control'] = 'no-cache'
-    response['X-Accel-Buffering'] = 'no'
-    return response
 
 
 @login_required
@@ -1773,48 +1006,6 @@ def delete_meal(request):
             return JsonResponse({"success": False, "error": str(e)})
     
     return JsonResponse({"error": "POST required"}, status=400)
-
-@csrf_exempt
-@login_required
-def get_today_activity(request):
-    """Return today's pose workout activity (reps and calories)"""
-    if request.method != "GET":
-        return JsonResponse({"error": "GET required"}, status=400)
-    
-    today = timezone.now().date()
-    logs = ExerciseLog.objects.filter(user=request.user, start_time__date=today)
-    
-    by_exercise = {}
-    total_cals = 0.0
-    total_reps = 0
-    total_duration = 0
-    
-    for log in logs:
-        exercise_data = by_exercise.setdefault(log.exercise, {
-            "reps": 0, 
-            "reps_left": 0, 
-            "reps_right": 0, 
-            "calories": 0.0, 
-            "duration_seconds": 0
-        })
-        exercise_data["reps"] += log.reps
-        exercise_data["reps_left"] += log.reps_left
-        exercise_data["reps_right"] += log.reps_right
-        exercise_data["calories"] += log.calories_burned
-        exercise_data["duration_seconds"] += log.duration_seconds
-        
-        total_cals += log.calories_burned
-        total_reps += log.reps
-        total_duration += log.duration_seconds
-    
-    return JsonResponse({
-        "date": str(today),
-        "total_reps": total_reps,
-        "total_calories_burned": round(total_cals, 1),
-        "total_duration_seconds": total_duration,
-        "total_duration_minutes": round(total_duration / 60, 1),
-        "by_exercise": by_exercise
-    })
 
 @login_required
 def pose_correction(request):

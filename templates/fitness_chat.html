@@ -179,16 +179,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     const chatForm = document.getElementById('chatForm');
     const chatMessages = document.getElementById('chatMessages');
-    const messageInput = document.querySelector('#id_message');
+    const messageInput = document.querySelector('#id_message'); // Target the actual form field ID
     const sendButton = document.getElementById('sendButton');
     const sendText = sendButton.querySelector('.send-text');
     const sendLoading = sendButton.querySelector('.send-loading');
     const actionButtons = document.querySelectorAll('.action-btn');
     const voiceBtn = document.getElementById('voiceBtn');
-
-    // Stream endpoint URL
-    const STREAM_URL = "{% url 'fitness_chat_stream' %}";
-    const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
     // Web Speech API setup
     let recognition = null;
@@ -235,131 +231,79 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     } else {
+        // Hide voice button if not supported
         voiceBtn.style.display = 'none';
     }
+
+    // Debug: Check if elements are found
+    console.log('Form:', chatForm);
+    console.log('Input:', messageInput);
+    console.log('Send button:', sendButton);
 
     // Auto-scroll to bottom
     function scrollToBottom() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+
+    // Initial scroll
     scrollToBottom();
 
-    // ── Streaming Chat Submit ──────────────────────────────────────
+    // Handle form submission
     chatForm.addEventListener('submit', function(e) {
         e.preventDefault();
+        
         const message = messageInput.value.trim();
         if (!message) return;
 
-        // UI: disable input, show spinner
+        console.log('Sending message:', message);
+
+        // Show loading state
         sendText.style.display = 'none';
         sendLoading.style.display = 'inline-flex';
         sendButton.disabled = true;
         messageInput.disabled = true;
 
-        // Add user bubble
+        // Add user message to chat immediately
         addUserMessage(message);
         messageInput.value = '';
-        autoResize();
+        autoResize(); // Reset textarea height
         scrollToBottom();
 
-        // Create bot bubble with typing cursor
-        const botDiv = document.createElement('div');
-        botDiv.className = 'message bot-message';
-        botDiv.innerHTML = `
-            <div class="message-avatar">🤖</div>
-            <div class="message-content">
-                <div class="message-text"><span class="typing-cursor"></span></div>
-                <div class="message-time">Just now</div>
-            </div>
-        `;
-        chatMessages.appendChild(botDiv);
-        scrollToBottom();
-
-        const textEl = botDiv.querySelector('.message-text');
-        let accumulated = '';
-
-        // Open SSE stream via fetch (POST not supported by EventSource)
-        fetch(STREAM_URL, {
+        // Send AJAX request
+        fetch(window.location.href, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             },
-            body: new URLSearchParams({ message: message }),
-        }).then(response => {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            function pump() {
-                return reader.read().then(({ done, value }) => {
-                    if (done) {
-                        finishStream();
-                        return;
-                    }
-                    buffer += decoder.decode(value, { stream: true });
-                    // Process complete SSE lines
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop(); // keep incomplete line in buffer
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const payload = JSON.parse(line.slice(6));
-                                if (payload.token) {
-                                    accumulated += payload.token;
-                                    renderMarkdown(textEl, accumulated);
-                                    scrollToBottom();
-                                }
-                                if (payload.done) {
-                                    finishStream();
-                                    return;
-                                }
-                            } catch (err) { /* skip bad JSON */ }
-                        }
-                    }
-                    return pump();
-                });
+            body: new URLSearchParams({
+                'message': message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Response:', data);
+            if (data.success) {
+                addBotMessage(data.response);
+                scrollToBottom();
+            } else {
+                addBotMessage('Sorry, I encountered an error. Please try again.');
             }
-            return pump();
-        }).catch(error => {
-            console.error('Stream error:', error);
-            textEl.innerHTML = 'Sorry, I encountered an error. Please try again.';
-            finishStream();
-        });
-
-        function finishStream() {
-            // Remove cursor
-            const cursor = textEl.querySelector('.typing-cursor');
-            if (cursor) cursor.remove();
-            // Re-enable input
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            addBotMessage('Sorry, I encountered an error. Please try again.');
+        })
+        .finally(() => {
+            // Reset loading state
             sendText.style.display = 'inline-flex';
             sendLoading.style.display = 'none';
             sendButton.disabled = false;
             messageInput.disabled = false;
             messageInput.focus();
-        }
+        });
     });
-
-    // ── Render markdown-ish text to HTML ────────────────────────────
-    function renderMarkdown(el, text) {
-        let html = escapeHtml(text);
-        // Bold **text**
-        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        // Italic *text*  (but not inside bold)
-        html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-        // Bullet lists
-        html = html.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
-        html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-        // Numbered lists
-        html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-        // Newlines
-        html = html.replace(/\n/g, '<br>');
-        // Clean up nested ULs
-        html = html.replace(/<\/ul><br><ul>/g, '');
-
-        el.innerHTML = html + '<span class="typing-cursor"></span>';
-    }
 
     // Handle quick action buttons
     actionButtons.forEach(button => {
@@ -373,8 +317,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add user message to chat
     function addUserMessage(message) {
+        // Hide welcome screen if it exists
         const welcomeScreen = chatMessages.querySelector('.welcome-screen');
-        if (welcomeScreen) welcomeScreen.style.display = 'none';
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'none';
+        }
         
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user-message';
@@ -384,6 +331,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="message-time">Just now</div>
             </div>
             <div class="message-avatar">👤</div>
+        `;
+        chatMessages.appendChild(messageDiv);
+    }
+
+    // Add bot message to chat
+    function addBotMessage(response) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.innerHTML = `
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+                <div class="message-text">${response.replace(/\n/g, '<br>')}</div>
+                <div class="message-time">Just now</div>
+            </div>
         `;
         chatMessages.appendChild(messageDiv);
     }
@@ -405,44 +366,16 @@ document.addEventListener('DOMContentLoaded', function() {
     messageInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            console.log('Enter key pressed, submitting form');
             chatForm.dispatchEvent(new Event('submit'));
         }
     });
+
+    // Auto-resize on input
     messageInput.addEventListener('input', autoResize);
+
+    // Focus on input when page loads
     messageInput.focus();
 });
 </script>
-
-<style>
-/* Typing cursor animation */
-.typing-cursor {
-    display: inline-block;
-    width: 2px;
-    height: 1.1em;
-    background: #00d4ff;
-    margin-left: 2px;
-    vertical-align: text-bottom;
-    animation: blink 0.7s step-end infinite;
-}
-@keyframes blink {
-    50% { opacity: 0; }
-}
-
-/* Smooth message text appearance */
-.message-text {
-    transition: none;
-    word-wrap: break-word;
-    line-height: 1.6;
-}
-.message-text ul {
-    margin: 4px 0;
-    padding-left: 20px;
-}
-.message-text li {
-    margin: 2px 0;
-}
-.message-text strong {
-    color: #00d4ff;
-}
-</style>
 {% endblock %}

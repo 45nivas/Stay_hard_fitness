@@ -204,23 +204,6 @@ a:hover {
     padding: var(--spacing-lg) 0;
 }
 
-/* Compact header for workout selection */
-.workout-selection .page-header {
-    margin-bottom: var(--spacing-xs);
-    padding: var(--spacing-xs) 0;
-    flex-shrink: 0;
-}
-
-.workout-selection .page-header h1 {
-    font-size: 1.8rem;
-    margin-bottom: var(--spacing-xs);
-}
-
-.workout-selection .page-header p {
-    font-size: 0.9rem;
-    margin: 0;
-}
-
 .page-header h1 {
     color: var(--text-primary);
     margin-bottom: var(--spacing-md);
@@ -255,16 +238,161 @@ a:hover {
     line-height: 1.6;
 }
 
-/* Workout Selection Grid - Fixed height, no scrolling */
+/* ========== Dashboard ========== */
+.dashboard {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-lg);
+}
+
+.dashboard-header {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+}
+
+.dashboard-header h1 {
+    font-size: 1.75rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.dashboard-header p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+}
+
+/* Dashboard Card */
+.dash-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.25s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dash-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-green);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.dash-card-accent {
+    height: 4px;
+    width: 100%;
+}
+
+.accent-blue    { background: linear-gradient(90deg, #4F9CFF, #6CB4FF); }
+.accent-orange  { background: linear-gradient(90deg, #FF8C42, #FFB347); }
+.accent-green   { background: linear-gradient(90deg, #00CC6A, #00FF88); }
+.accent-purple  { background: linear-gradient(90deg, #A855F7, #C084FC); }
+.accent-red     { background: linear-gradient(90deg, #EF4444, #F87171); }
+
+.dash-card-body {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.dash-card-icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.dash-card h3 {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.dash-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: var(--spacing-md);
+    flex-grow: 1;
+}
+
+.dash-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: var(--spacing-md);
+}
+
+.dash-tag {
+    background: rgba(0, 255, 136, 0.08);
+    color: var(--accent-green);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: var(--font-weight-medium);
+    border: 1px solid rgba(0, 255, 136, 0.15);
+    letter-spacing: 0.02em;
+}
+
+.dash-btn {
+    display: inline-block;
+    text-align: center;
+    padding: 10px 20px;
+    background: var(--accent-green);
+    color: var(--bg-primary);
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--radius);
+    transition: var(--transition);
+}
+
+.dash-card:hover .dash-btn {
+    background: var(--accent-green-hover);
+}
+
+.dash-btn-secondary {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-input);
+}
+
+.dash-card:hover .dash-btn-secondary {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    background: var(--bg-input);
+}
+
+/* Dashboard responsive */
+@media (max-width: 900px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 580px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    .dashboard {
+        padding: var(--spacing-lg) var(--spacing-md);
+    }
+}
+
+/* ========== Legacy workout selection (kept for other pages) ========== */
 .workout-selection {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 var(--spacing-md);
-    height: calc(100vh - 64px); /* Account for fixed nav height */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Prevent any scrolling */
-    box-sizing: border-box;
 }
 
 .workout-grid {
@@ -284,7 +412,6 @@ a:hover {
     transition: var(--transition);
     display: flex;
     flex-direction: column;
-    min-height: 300px;
 }
 
 .workout-card:hover {
@@ -313,7 +440,7 @@ a:hover {
     flex-grow: 1;
 }
 
-/* Feature Tags - Minimal */
+/* Feature Tags */
 .feature-tags {
     display: flex;
     flex-wrap: wrap;
@@ -321,84 +448,14 @@ a:hover {
     margin-bottom: var(--spacing-lg);
 }
 
-/* Tools Layout - Compact for no scrolling */
-.tools-section {
-    margin: 0;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    overflow: hidden;
-}
-
-.tools-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--spacing-md);
-    flex: 1;
-}
-
-.tool-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-md); /* Reduced padding */
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    position: relative;
-    overflow: hidden;
-    min-height: 140px; /* Further reduced height */
-}
-
-.tool-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--accent-green);
-    box-shadow: var(--shadow-card);
-}
-
-.tool-icon {
-    font-size: 2rem; /* Further reduced from 2.5rem */
-    margin-bottom: var(--spacing-xs); /* Further reduced spacing */
-    text-align: center;
-}
-
-.tool-card h3 {
-    color: var(--text-primary);
-    font-size: 1.25rem; /* Reduced from 1.5rem */
-    font-weight: var(--font-weight-semibold);
-    margin-bottom: var(--spacing-xs); /* Reduced from sm */
-    text-align: center;
-}
-
-.tool-card p {
-    color: var(--text-secondary);
-    font-size: 0.9rem; /* Slightly smaller */
-    line-height: 1.5; /* Tighter line height */
-    margin-bottom: var(--spacing-sm); /* Reduced margin */
-    flex-grow: 1;
-    text-align: center;
-}
-
-/* Compact feature tags */
-.feature-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-xs);
-    justify-content: center;
-    margin-bottom: var(--spacing-sm);
-}
-
 .tag {
-    background: var(--accent-green-subtle);
-    color: var(--text-muted);
-    padding: 2px 6px; /* Reduced padding */
-    border-radius: var(--radius-sm);
-    font-size: 0.7rem; /* Smaller font */
+    background: rgba(0, 255, 136, 0.08);
+    color: var(--accent-green);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
     font-weight: var(--font-weight-medium);
+    border: 1px solid rgba(0, 255, 136, 0.15);
 }
 
 /* Exercise Grid */

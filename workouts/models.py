@@ -176,3 +176,19 @@ class DailySummary(models.Model):
 
     def __str__(self):
         return f"Summary for {self.user.username} on {self.date}"
+
+
+class PostureAnalysis(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    exercise_name = models.CharField(max_length=100)
+    posture_score = models.FloatField(help_text="Alignment score percentage")
+    feedback = models.TextField(help_text="Form correction feedback")
+    improvement_tips = models.JSONField(default=list, help_text="Biomechanical corrective tips")
+    analysis_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-analysis_date']
+
+    def __str__(self):
+        return f"{self.user.username}'s {self.exercise_name} Analysis on {self.analysis_date}"
+

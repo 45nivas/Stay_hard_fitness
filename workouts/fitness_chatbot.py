@@ -251,23 +251,21 @@ class FitnessChatbot:
 
     def _redirect_to_fitness(self):
         """Polite redirect for off-topic questions."""
-        return """🏋️ **I'm your AI Fitness Coach!**
+        return """**OS Architect - Senior Fitness Trainer**
 
-I'm specialized in fitness, workouts, and nutrition — I can't help with other topics.
+I specialize strictly in biomechanics, fitness programming, and clinical nutrition. I do not process queries outside these domains.
 
-**Here's what I can do for you:**
-- 💪 Personalized workout routines
-- 🍎 Daily calorie & macro calculations
-- 🎯 Exercise form tips with pose detection
-- 📊 Fat loss / muscle gain plans
+**Available Protocol Services:**
+- Comprehensive transformation planning
+- Periodized workout programming
+- Advanced macro and caloric targeting
+- Biomechanical form analysis
 
-**Try asking:**
-- "Give me a workout routine"
-- "How many calories should I eat?"
-- "What's my daily protein target?"
-- "How do I do squats with proper form?"
+**How to interact:**
+- "Design a 12-week transformation protocol"
+- "What is the optimal protein target for hypertrophy?"
 
-Let's crush your fitness goals! 💪"""
+Please provide your fitness directive."""
     
     def handle_non_fitness_with_redirect(self, message):
         """Handle non-fitness questions intelligently then redirect to fitness"""
@@ -340,52 +338,98 @@ Let's focus on your fitness journey! What would you like to know about health an
     def generate_workout_response(self, message, user_profile_data):
         """Generate workout responses with MediaPipe pose detection context."""
 
-        prompt = f"""[SYSTEM] You are a strict fitness-only trainer for a gym app with real-time pose detection.
+        prompt = f"""[SYSTEM] You are OS Architect, a highly professional, senior fitness and nutrition trainer. You must maintain a clinical, authoritative, and professional tone at all times. Do not use excessive emojis or casual greetings.
 You MUST only answer fitness, workout, exercise, and nutrition questions.
-If the user asks anything unrelated to fitness (celebrities, movies, general knowledge, etc.), 
-respond ONLY with: "I'm your fitness coach! Ask me about workouts, nutrition, or exercise form."
-NEVER answer off-topic questions. NEVER make up personal details about the user.
+If the user asks anything unrelated to fitness, respond ONLY with: "I specialize strictly in fitness, biomechanics, and nutrition."
+
+CRITICAL INSTRUCTION: If the user asks for a workout plan, a transformation program, or personal coaching, YOU MUST NOT generate the plan immediately. Instead, you MUST ask the user to provide the following details first so you can account for allergies, diet, and medical history carefully:
+1. Age & Gender
+2. Phone Number (WhatsApp)
+3. City & Country
+4. Height (cm)
+5. Weight (kg)
+6. Medical issues or injuries (if any) (If none, type "None")
+7. Fitness level (Beginner / Intermediate / Advanced)
+8. Diet type (Veg / Non-Veg / Eggitarian)
+9. Fitness goal (Fat loss / Muscle gain / Both / Other)
+10. Training hours per week (1-2 hrs / 3–5 hrs / 6+ hrs)
+11. Occupation
+12. Monthly budget for coaching
 
 [USER PROFILE] {user_profile_data}
-
-[APP FEATURES]
-- Squats with MediaPipe landmark tracking
-- Push-ups with form analysis (OpenCV)
-- Bicep Curls with rep counting
-- Hammer Curls with left/right arm tracking
-- Side Raises with shoulder form check
-
 [USER MESSAGE] {message}
 
-[INSTRUCTIONS] Give specific, actionable fitness advice. Mention pose detection features when relevant.
-Keep response under 200 words. Use bullet points and emojis for readability."""
+[INSTRUCTIONS] Give highly specific, professional advice. If they request a plan, output the 12-point questionnaire first. Keep responses structured and concise."""
 
-        return self._query_ollama(prompt)
+        return self._query_llm(prompt)
 
     def generate_general_response(self, message, user_profile_data):
         """Generate general fitness responses."""
 
-        prompt = f"""[SYSTEM] You are a strict fitness-only AI trainer for a modern gym app.
+        prompt = f"""[SYSTEM] You are OS Architect, a strict, professional senior fitness and nutrition trainer.
+You MUST maintain a highly professional, authoritative tone without excessive emojis.
 You MUST only answer questions about fitness, workouts, nutrition, health, and exercise.
-If the user asks about anything else (celebrities, movies, tech, general knowledge, etc.),
-respond ONLY with: "I'm your fitness coach! Ask me about workouts, nutrition, or exercise form."
-NEVER answer off-topic questions. NEVER hallucinate or make up personal information.
+
+CRITICAL INSTRUCTION: If the user asks for a workout plan, a transformation program, or personal coaching, YOU MUST NOT generate the plan immediately. Instead, you MUST ask the user to provide the following details first so you can account for allergies, diet, and medical history carefully:
+1. Age & Gender
+2. Phone Number (WhatsApp)
+3. City & Country
+4. Height (cm) & Weight (kg)
+5. Medical issues or injuries (if any)
+6. Fitness level (Beginner / Intermediate / Advanced)
+7. Diet type (Veg / Non-Veg / Eggitarian)
+8. Fitness goal (Fat loss / Muscle gain)
+9. Training hours per week (1-2 / 3–5 / 6+)
+10. Occupation & Monthly budget for coaching
 
 [USER PROFILE] {user_profile_data}
-
-[APP FEATURES]
-- Real-time pose correction with MediaPipe
-- Voice calorie tracking
-- Rep counting for 5 exercises
-- One rep max calculator
-
 [USER MESSAGE] {message}
 
-[INSTRUCTIONS] Be encouraging and knowledgeable. Reference app features when helpful.
-Keep response under 150 words. Use emojis and formatting for readability."""
+[INSTRUCTIONS] Be strictly professional and highly knowledgeable. Reference clinical biomechanics when helpful. If they request a plan, output the questionnaire first."""
 
-        return self._query_ollama(prompt)
+        return self._query_llm(prompt)
     
+    def _query_llm(self, prompt):
+        """Query LLM with hybrid routing: Gemini 1.5 Flash → mistral:7b → llama3 → offline responses."""
+        # 1. Primary: Gemini 1.5 Flash Cloud
+        result = self._query_gemini_1_5(prompt)
+        if result:
+            return result
+            
+        # 2. Fallbacks: Local Ollama and Offline
+        return self._query_ollama(prompt)
+
+    def _query_gemini_1_5(self, prompt):
+        """Query Gemini 1.5 Flash API as primary high-performance LLM."""
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            logger.info("GEMINI_API_KEY not found in environment — skipping Gemini cloud query")
+            return None
+        
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
+        try:
+            logger.info("Querying Gemini 1.5 Flash (Cloud)...")
+            response = requests.post(f"{url}?key={api_key}", headers=headers, json=payload, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                result = data['candidates'][0]['content']['parts'][0]['text'].strip()
+                if result:
+                    logger.info("Gemini 1.5 Flash cloud query successful")
+                    return result
+            else:
+                logger.warning("Gemini 1.5 Flash returned status %s: %s", response.status_code, response.text)
+        except Exception as e:
+            logger.error("Gemini 1.5 Flash query error: %s", e)
+            
+        return None
+
     def _query_ollama(self, prompt):
         """Query Ollama LLM with fallback: mistral:7b → llama3 → offline responses."""
 
@@ -461,60 +505,46 @@ Keep response under 150 words. Use emojis and formatting for readability."""
     
     def _get_offline_response(self, prompt):
         """Provide built-in responses when Ollama is unavailable (demo / offline mode)."""
-        prompt_lower = prompt.lower()
+        import re
+        message_match = re.search(r'\[USER MESSAGE\] (.*?)(\n\[|\Z)', prompt, re.DOTALL)
+        user_message = message_match.group(1).lower() if message_match else ""
 
         # Workout-related responses
-        if any(word in prompt_lower for word in ['workout', 'exercise', 'squat', 'pushup', 'curl']):
-            return """💪 **Great question about workouts!**
+        if any(word in user_message for word in ['workout', 'exercise', 'squat', 'pushup', 'curl']):
+            return """**OS Architect - Biomechanics Subsystem Active**
+LLM Telemetry offline. Loading local database protocols:
 
-🏋️ **Upper Body:**
-- Push-ups (our app tracks your form!)
-- Bicep curls with pose detection
-- Hammer curls for forearm strength
+**Core Modalities:**
+- Integrated pose detection for hypertrophy targeting
+- Clinical form analysis (OpenCV)
+- Neuromuscular rep counting
 
-🦵 **Lower Body:**
-- Squats with real-time form correction
-- Side raises for shoulder stability
-
-📱 **App Features:**
-- Real-time pose correction with MediaPipe
-- Rep counting for all exercises
-- Form analysis to prevent injury
-
-Start with 3 sets of 8-12 reps. Our pose detection will help you maintain perfect form! 💪"""
+Deploy standard protocol: 3-4 working sets of 8-12 reps per movement. Ensure progressive overload."""
 
         # Nutrition-related responses
-        elif any(word in prompt_lower for word in ['nutrition', 'calories', 'diet', 'protein']):
-            return """🍎 **Nutrition is key to your fitness success!**
+        elif any(word in user_message for word in ['nutrition', 'calories', 'diet', 'protein', 'eggs', 'eat']):
+            return """**OS Architect - Nutrition Subsystem Active**
+LLM Telemetry offline. Loading evidence-based macro targets:
 
-**General Guidelines:**
-- Eat 1.6-2.2g protein per kg body weight
-- Stay hydrated: 35ml water per kg body weight
-- Eat within 30 mins post-workout
+**Clinical Targets:**
+- Minimum 1.6-2.2g protein per kg
+- Base hydration: 35ml water per kg
+- Maintain 300-500 kcal surplus/deficit based on current cycle
 
-📱 **Use Our Voice Tracker:**
-- Say "I ate 200g chicken breast" for instant tracking
-- Real-time nutrition calculations
-- Accurate macro breakdowns
-
-**Pro Tip:** Use our calorie tracker to log meals easily — just speak into the microphone! 🎤"""
+*Use Voice Tracking modules to log ingestion events.*"""
 
         # Default fitness response
         else:
-            return """💪 **I'm your AI Fitness Coach!**
+            return """**OS Architect Telemetry Warning**
+Unable to connect to local LLM (Ollama). Running in offline procedural mode.
 
-**What I can help with:**
-🎯 Real-time pose detection for perfect form
-🎤 Voice-enabled calorie tracking
-📊 Nutrition calculation and tracking
-🏋️ 5 exercises with rep counting
+**Available System Architectures:**
+- Real-time pose detection and biomechanics form correction
+- Voice-enabled calorie and macro tracking
+- Clinical nutrition calculation
+- Periodized strength protocols
 
-**Try asking:**
-- "How many calories should I eat?"
-- "Give me a workout routine"
-- "How do I track my meals?"
-
-Let's crush your fitness goals! 🔥"""
+System ready. Awaiting your directive."""
     
     def get_user_profile_summary(self):
         """Get user profile summary for display"""

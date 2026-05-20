@@ -3,58 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Stay Hard Fitness - Professional Fitness Solutions{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css?v=2026021101">
+  <title>{% block title %}Fittar.fit Style | Stay Hard Fitness{% endblock %}</title>
+  <!-- Load the bespoke UI system -->
+  <link rel="stylesheet" href="/static/premium.css?v=1">
+  {% block extra_head %}{% endblock %}
 </head>
-<body>
-  <!-- Simple Professional Navigation -->
-  <nav class="main-nav">
-    <div class="nav-container">
-      <div class="nav-brand">
-        <h1>🏋️ Stay Hard Fitness</h1>
-        <span class="brand-tagline">Professional Fitness Solutions</span>
-      </div>
+<body class="animate-up">
+
+  <!-- Fittar Style Floating Nav -->
+  <div class="nav-wrapper">
+    <nav class="pill-nav glass-nav">
+      <a href="{% url 'home' %}" class="nav-brand">
+        STAY<span class="t-accent">HARD</span>
+      </a>
       
       {% if user.is_authenticated %}
-      <div class="nav-menu">
-        <a href="{% url 'workout_selection' %}" class="nav-link">Workouts</a>
-        <a href="{% url 'pose_correction' %}" class="nav-link">Pose Correction</a>
-        <a href="{% url 'fitness_chat' %}" class="nav-link">AI Trainer</a>
-        <a href="{% url 'profile_setup' %}" class="nav-link">Profile</a>
-        <a href="{% url 'logout' %}" class="nav-link logout">Logout</a>
+      <div class="nav-links">
+        <a href="{% url 'workout_selection' %}" class="nav-item">Dashboard</a>
+        <a href="{% url 'pose_correction' %}" class="nav-item">Pose Correction</a>
+        <a href="{% url 'fitness_chat' %}" class="nav-item">AI Trainer</a>
+        <a href="{% url 'profile_setup' %}" class="nav-item">Profile</a>
+        <form method="post" action="{% url 'logout' %}" style="display:inline; margin-left: 1rem;">
+            {% csrf_token %}
+            <button type="submit" class="btn-outline" style="padding: 0.4rem 1rem;">Logout</button>
+        </form>
       </div>
       {% endif %}
-    </div>
-  </nav>
+    </nav>
+  </div>
 
-  <!-- Main Content -->
-  <main class="main-content">
-    <div class="content-wrapper">
-      {% if messages %}
-        <div class="messages-container">
-          {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-              {{ message }}
-            </div>
-          {% endfor %}
+  <!-- Global Messages aligned to Fittar aesthetics -->
+  {% if messages %}
+    <div class="fittar-messages" id="fittarMessages">
+      {% for message in messages %}
+        <div class="fittar-alert fittar-alert-{{ message.tags }}">
+          {{ message }}
         </div>
-      {% endif %}
-      
+      {% endfor %}
+    </div>
+    <script>
+      // Auto dismiss messages
+      setTimeout(() => {
+        const msg = document.getElementById('fittarMessages');
+        if(msg) {
+          msg.style.opacity = '0';
+          msg.style.transition = 'opacity 0.5s';
+          setTimeout(() => msg.remove(), 500);
+        }
+      }, 4000);
+    </script>
+  {% endif %}
+
+  <!-- Main View -->
+  {% block content_wrapper %}
+  <main class="main-wrapper">
+    <div class="container">
       {% block content %}{% endblock %}
     </div>
   </main>
+  {% endblock %}
 
-  <!-- Footer -->
-  <footer class="main-footer">
-    <div class="footer-content">
-      <p>&copy; 2024 Stay Hard Fitness. Professional fitness solutions with AI-powered training.</p>
-      <div class="footer-links">
-        <a href="{% url 'pose_correction' %}" class="footer-link">Pose Correction</a>
-        <a href="{% url 'fitness_chat' %}" class="footer-link">AI Training</a>
-        <a href="{% url 'calorie_tracker' %}" class="footer-link">Progress Tracking</a>
-      </div>
-    </div>
-  </footer>
-
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

@@ -1,238 +1,76 @@
 {% extends 'base.html' %}
+{% block title %}Dashboard | Stay Hard Fitness{% endblock %}
+
 {% block content %}
-<style>
-  .dash {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px 24px;
-  }
-  .dash-head {
-    margin-bottom: 36px;
-  }
-  .dash-head h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 6px 0;
-  }
-  .dash-head p {
-    color: #6b7280;
-    font-size: 1rem;
-    margin: 0;
-  }
+<div class="animate-up" style="max-width: 800px; margin-top: 2rem;">
+  <h1 class="t-h1 mb-2">Your <span class="t-accent">Training</span> Dashboard</h1>
+  <p class="t-muted" style="font-size: 1.25rem;">Select an intelligence module to continue your progression.</p>
+</div>
 
-  /* Top row: 3 equal big cards */
-  .dash-top {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-bottom: 20px;
-  }
+<div class="fittar-grid animate-up" style="animation-delay: 0.2s;">
+  <!-- AI Trainer -->
+  <a href="{% url 'fitness_chat' %}" class="fittar-card surface-card">
+    <div class="fittar-card-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    </div>
+    <h3>AI Coach</h3>
+    <p>Personalized workout plans, exercise guidance, and nutrition advice powered by local LLM.</p>
+    <div class="fittar-tags">
+      <span class="fittar-tag">Planning</span>
+      <span class="fittar-tag">Guidance</span>
+    </div>
+  </a>
 
-  /* Bottom row: 2 equal big cards */
-  .dash-bot {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
+  <!-- Calorie Tracker -->
+  <a href="{% url 'calorie_tracker' %}" class="fittar-card surface-card">
+    <div class="fittar-card-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+    </div>
+    <h3>Voice Macros</h3>
+    <p>Log meals using pure voice recognition. Instant AI-powered nutritional breakdown.</p>
+    <div class="fittar-tags">
+      <span class="fittar-tag">Voice AI</span>
+      <span class="fittar-tag">Tracking</span>
+    </div>
+  </a>
 
-  .dc {
-    background: #1e2028;
-    border: 1px solid #2d3039;
-    border-radius: 16px;
-    padding: 32px 28px;
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    min-height: 260px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
-  }
-  .dc:hover {
-    border-color: #00FF88;
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0,255,136,0.1);
-  }
+  <!-- Pose Correction -->
+  <a href="{% url 'pose_correction' %}" class="fittar-card surface-card">
+    <div class="fittar-card-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 11l7-3 7 3"/></svg>
+    </div>
+    <h3>Pose Correction</h3>
+    <p>Real-time computer vision detection, rep counting, and live form feedback via webcam.</p>
+    <div class="fittar-tags">
+      <span class="fittar-tag">Computer Vision</span>
+      <span class="fittar-tag">Analysis</span>
+    </div>
+  </a>
 
-  /* Top accent stripe */
-  .dc::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    border-radius: 16px 16px 0 0;
-  }
-  .dc-blue::before    { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
-  .dc-orange::before  { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
-  .dc-green::before   { background: linear-gradient(90deg, #00CC6A, #00FF88); }
-  .dc-purple::before  { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
-  .dc-red::before     { background: linear-gradient(90deg, #EF4444, #F87171); }
+  <!-- Carb Cycling -->
+  <a href="{% url 'carb_cycling' %}" class="fittar-card surface-card">
+    <div class="fittar-card-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+    </div>
+    <h3>Carb Cycling</h3>
+    <p>Advanced macro planning strategy for superior body composition and performance.</p>
+    <div class="fittar-tags">
+      <span class="fittar-tag">Strategy</span>
+      <span class="fittar-tag">Recomp</span>
+    </div>
+  </a>
 
-  .dc-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    margin-bottom: 20px;
-  }
-  .dc-blue .dc-icon    { background: rgba(59,130,246,0.12); color: #60A5FA; }
-  .dc-orange .dc-icon  { background: rgba(245,158,11,0.12); color: #FBBF24; }
-  .dc-green .dc-icon   { background: rgba(0,255,136,0.1);   color: #00FF88; }
-  .dc-purple .dc-icon  { background: rgba(139,92,246,0.12);  color: #A78BFA; }
-  .dc-red .dc-icon     { background: rgba(239,68,68,0.12);   color: #F87171; }
-
-  .dc h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #f1f5f9;
-    margin: 0 0 8px 0;
-  }
-  .dc p {
-    font-size: 0.88rem;
-    color: #9ca3af;
-    line-height: 1.55;
-    margin: 0 0 20px 0;
-    flex-grow: 1;
-  }
-
-  .dc-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 22px;
-  }
-  .dc-tag {
-    font-size: 0.72rem;
-    font-weight: 500;
-    padding: 4px 12px;
-    border-radius: 100px;
-    letter-spacing: 0.02em;
-  }
-  .dc-blue .dc-tag    { background: rgba(59,130,246,0.1);  color: #93C5FD; }
-  .dc-orange .dc-tag  { background: rgba(245,158,11,0.1);  color: #FCD34D; }
-  .dc-green .dc-tag   { background: rgba(0,255,136,0.08);  color: #6EE7B7; }
-  .dc-purple .dc-tag  { background: rgba(139,92,246,0.1);  color: #C4B5FD; }
-  .dc-red .dc-tag     { background: rgba(239,68,68,0.1);   color: #FCA5A5; }
-
-  .dc-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 22px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: background 0.2s, transform 0.15s;
-    align-self: flex-start;
-  }
-  .dc-btn-fill {
-    background: #00FF88;
-    color: #111;
-  }
-  .dc:hover .dc-btn-fill {
-    background: #00e67a;
-  }
-  .dc-btn-ghost {
-    background: rgba(255,255,255,0.06);
-    color: #d1d5db;
-    border: 1px solid #3a3d47;
-  }
-  .dc:hover .dc-btn-ghost {
-    border-color: #00FF88;
-    color: #00FF88;
-  }
-  .dc-btn svg { width: 14px; height: 14px; }
-
-  @media (max-width: 900px) {
-    .dash-top { grid-template-columns: 1fr; }
-    .dash-bot { grid-template-columns: 1fr; }
-    .dc { min-height: 200px; }
-  }
-  @media (min-width: 601px) and (max-width: 900px) {
-    .dash-top { grid-template-columns: repeat(2, 1fr); }
-  }
-</style>
-
-<div class="dash">
-  <div class="dash-head">
-    <h1>Your Fitness Dashboard</h1>
-    <p>Everything you need to train smarter, eat better, and stay consistent.</p>
-  </div>
-
-  <div class="dash-top">
-    <!-- AI Trainer -->
-    <a href="{% url 'fitness_chat' %}" class="dc dc-blue">
-      <div class="dc-icon">&#x1F916;</div>
-      <h3>AI Fitness Trainer</h3>
-      <p>Get personalized workout plans, exercise guidance, and nutrition advice from your AI coach.</p>
-      <div class="dc-tags">
-        <span class="dc-tag">Workout Plans</span>
-        <span class="dc-tag">Nutrition</span>
-        <span class="dc-tag">Guidance</span>
-      </div>
-      <span class="dc-btn dc-btn-fill">Start Training <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg></span>
-    </a>
-
-    <!-- Calorie Tracker -->
-    <a href="{% url 'calorie_tracker' %}" class="dc dc-orange">
-      <div class="dc-icon">&#x1F3A4;</div>
-      <h3>Voice Calorie Tracker</h3>
-      <p>Log meals using voice recognition and get instant AI-powered nutrition breakdown.</p>
-      <div class="dc-tags">
-        <span class="dc-tag">Voice Input</span>
-        <span class="dc-tag">AI Analysis</span>
-        <span class="dc-tag">Daily Log</span>
-      </div>
-      <span class="dc-btn dc-btn-fill">Track Calories <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg></span>
-    </a>
-
-    <!-- Pose Correction -->
-    <a href="{% url 'pose_correction' %}" class="dc dc-green">
-      <div class="dc-icon">&#x1F3CB;</div>
-      <h3>Pose Correction</h3>
-      <p>Real-time pose detection, rep counting, and live form feedback for 5 exercises.</p>
-      <div class="dc-tags">
-        <span class="dc-tag">Pose Detection</span>
-        <span class="dc-tag">Rep Counter</span>
-        <span class="dc-tag">Form Tips</span>
-      </div>
-      <span class="dc-btn dc-btn-fill">Start Workout <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg></span>
-    </a>
-  </div>
-
-  <div class="dash-bot">
-    <!-- Carb Cycling -->
-    <a href="{% url 'carb_cycling' %}" class="dc dc-purple">
-      <div class="dc-icon">&#x1F504;</div>
-      <h3>Carb Cycling Calculator</h3>
-      <p>Plan your macros with an advanced carb cycling strategy for body composition and performance.</p>
-      <div class="dc-tags">
-        <span class="dc-tag">Macro Planning</span>
-        <span class="dc-tag">Body Recomp</span>
-        <span class="dc-tag">Meal Strategy</span>
-      </div>
-      <span class="dc-btn dc-btn-ghost">Calculate Plan <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg></span>
-    </a>
-
-    <!-- One Rep Max -->
-    <a href="{% url 'one_rep_max' %}" class="dc dc-red">
-      <div class="dc-icon">&#x1F4AA;</div>
-      <h3>One Rep Max Calculator</h3>
-      <p>Find your max strength potential and optimal training zones for progressive overload.</p>
-      <div class="dc-tags">
-        <span class="dc-tag">Strength Test</span>
-        <span class="dc-tag">Training Zones</span>
-        <span class="dc-tag">Progress</span>
-      </div>
-      <span class="dc-btn dc-btn-ghost">Calculate Now <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg></span>
-    </a>
-  </div>
+  <!-- One Rep Max -->
+  <a href="{% url 'one_rep_max' %}" class="fittar-card surface-card">
+    <div class="fittar-card-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2z"/><path d="M20 5a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2z"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </div>
+    <h3>1RM Calculator</h3>
+    <p>Calculate maximum strength potential and optimal training zones for progressive overload.</p>
+    <div class="fittar-tags">
+      <span class="fittar-tag">Strength</span>
+      <span class="fittar-tag">Math</span>
+    </div>
+  </a>
 </div>
 {% endblock %}

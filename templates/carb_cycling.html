@@ -1,204 +1,193 @@
 {% extends 'base.html' %}
+{% block title %}Carb Cycling | Stay Hard Fitness{% endblock %}
+
 {% block content %}
-<div class="carb-cycling-container">
-    <div class="page-header">
-        <h1>🔄 Carb Cycling Calculator</h1>
-        <p>Advanced nutrition strategy for optimized body composition and performance</p>
-    </div>
+<div class="animate-up" style="max-width: 800px; margin-top: 2rem; margin-bottom: 3rem;">
+    <h1 class="t-h1 mb-2">Carb <span class="t-accent">Cycling</span></h1>
+    <p class="t-muted" style="font-size: 1.25rem;">Advanced non-linear macronutrient periodization.</p>
+</div>
 
-    <!-- Beginner Alert Banner -->
-    <div class="alert alert-warning">
-        <div class="alert-icon">⚠️</div>
-        <div class="alert-content">
-            <strong>Beginner Alert:</strong> Carb cycling is generally for advanced lifters. Beginners may experience dizziness or fatigue; consult a professional.
-        </div>
-    </div>
-
-    <div class="calculator-layout">
-        <!-- Input Form -->
-        <div class="calculator-form">
-            <div class="form-header">
-                <h2>Personal Information</h2>
-                <p>Enter your details for personalized carb cycling plan</p>
-            </div>
-
-            <form method="post" class="carb-form">
+<div class="animate-up fittar-grid" style="grid-template-columns: 1.2fr 1.8fr; gap: 3rem; align-items: start;">
+    <!-- Inputs -->
+    <div>
+        <div class="surface-card" style="padding: 2.5rem;">
+            <h3 class="t-h3" style="margin-bottom: 2rem;">Biometrics & Goal</h3>
+            <form method="post">
                 {% csrf_token %}
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="age">Age (years)</label>
-                        <input type="number" id="age" name="age" min="18" max="80" required>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="fittar-input-group" style="margin:0;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Age</label>
+                        <input type="number" name="age" min="18" max="80" class="fittar-input" required>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender" name="gender" required>
+                    <div class="fittar-input-group" style="margin:0;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Gender</label>
+                        <select name="gender" class="fittar-select" required>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
                         </select>
                     </div>
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="height">Height</label>
-                        <div class="input-with-unit">
-                            <input type="number" id="height" name="height" step="0.1" min="120" max="250" required>
-                            <select name="height_unit" class="unit-select">
-                                <option value="cm">cm</option>
-                                <option value="ft">ft</option>
-                            </select>
-                        </div>
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="fittar-input-group" style="margin:0;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Height</label>
+                        <input type="number" name="height" step="0.1" class="fittar-input" required>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="weight">Weight</label>
-                        <div class="input-with-unit">
-                            <input type="number" id="weight" name="weight" step="0.1" min="40" max="200" required>
-                            <select name="weight_unit" class="unit-select">
-                                <option value="kg">kg</option>
-                                <option value="lbs">lbs</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="activity_level">Activity Level</label>
-                        <select id="activity_level" name="activity_level" required>
-                            <option value="sedentary">Sedentary (Desk job, little exercise)</option>
-                            <option value="light">Light (Light exercise 1-3 days/week)</option>
-                            <option value="moderate" selected>Moderate (Moderate exercise 3-5 days/week)</option>
-                            <option value="active">Active (Hard exercise 6-7 days/week)</option>
-                            <option value="very_active">Very Active (Physical job + exercise)</option>
+                    <div class="fittar-input-group" style="margin:0;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: transparent; font-size: 0.9rem;">-</label>
+                        <select name="height_unit" class="fittar-select">
+                            <option value="cm">cm</option>
+                            <option value="ft">ft</option>
                         </select>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="training_days">Training Days/Week</label>
-                        <input type="number" id="training_days" name="training_days" min="1" max="7" value="3" required>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="fittar-input-group" style="margin:0;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Weight</label>
+                        <input type="number" name="weight" step="0.1" class="fittar-input" required>
+                    </div>
+                    <div class="fittar-input-group" style="margin:0;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: transparent; font-size: 0.9rem;">-</label>
+                        <select name="weight_unit" class="fittar-select">
+                            <option value="kg">kg</option>
+                            <option value="lbs">lbs</option>
+                        </select>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="goal">Primary Goal</label>
-                    <select id="goal" name="goal" required>
-                        <option value="fat_loss">Fat Loss (15% calorie deficit)</option>
-                        <option value="maintenance" selected>Maintenance (Steady weight)</option>
-                        <option value="muscle_gain">Muscle Gain (10% calorie surplus)</option>
+                
+                <div class="fittar-input-group">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Activity Profile</label>
+                    <select name="activity_level" class="fittar-select" required>
+                        <option value="sedentary">Sedentary</option>
+                        <option value="light">Light</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="active">Active</option>
+                        <option value="very_active">Athlete</option>
                     </select>
                 </div>
-
-                <button type="submit" class="btn btn-primary btn-large">
-                    Calculate Carb Cycling Plan
-                </button>
+                
+                <div class="fittar-input-group">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Training Freq (Days/Wk)</label>
+                    <input type="number" name="training_days" min="1" max="7" value="4" class="fittar-input" required>
+                </div>
+                
+                <div class="fittar-input-group">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Objective</label>
+                    <select name="goal" class="fittar-select" required>
+                        <option value="fat_loss">Fat Loss (Deficit)</option>
+                        <option value="maintenance" selected>Body Recomp (Maintain)</option>
+                        <option value="muscle_gain">Hypertrophy (Surplus)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">GENERATE PROTOCOL</button>
             </form>
         </div>
-
-        <!-- Results Display -->
+    </div>
+    
+    <!-- Results -->
+    <div>
         {% if result %}
-        <div class="calculator-results">
-            {% if result.error %}
-                <div class="alert alert-error">
-                    {{ result.error }}
-                </div>
-            {% else %}
-                <div class="results-header">
-                    <h2>Your Carb Cycling Plan</h2>
-                    <p>Personalized macro and calorie distribution</p>
-                </div>
-
-                <!-- Basic Metrics -->
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-value">{{ result.bmr }}</div>
-                        <div class="metric-label">BMR (Calories)</div>
-                        <div class="metric-desc">Basal Metabolic Rate</div>
+            <div class="surface-card" style="padding: 2.5rem; height: 100%;">
+                {% if result.error %}
+                    <div style="color: #ff5555; padding: 1rem; border: 1px solid #ff5555; border-radius: var(--rad-sm);">
+                        {{ result.error }}
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-value">{{ result.tdee }}</div>
-                        <div class="metric-label">TDEE (Calories)</div>
-                        <div class="metric-desc">Total Daily Energy</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">{{ result.protein_g }}g</div>
-                        <div class="metric-label">Daily Protein</div>
-                        <div class="metric-desc">Consistent every day</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">{{ result.fat_g }}g</div>
-                        <div class="metric-label">Daily Fats</div>
-                        <div class="metric-desc">25% of total calories</div>
-                    </div>
-                </div>
-
-                <!-- Carb Cycling Days -->
-                <div class="carb-days-section">
-                    <h3>Carb Cycling Breakdown</h3>
-                    <div class="carb-days-grid">
-                        <div class="carb-day-card high-carb">
-                            <div class="carb-day-type">High Carb Days</div>
-                            <div class="carb-amount">{{ result.high_carb_g }}g carbs</div>
-                            <div class="carb-calories">{{ result.high_carb_calories }} calories</div>
-                            <div class="carb-note">Training days</div>
+                {% else %}
+                    <h3 class="t-h3" style="margin-bottom: 2rem;">Metabolic Engine</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 3rem;">
+                        <div style="padding: 1.5rem; border: 1px solid var(--c-border); border-radius: var(--rad-sm);">
+                            <div class="t-muted" style="font-size: 0.8rem; margin-bottom: 0.5rem; text-transform: uppercase;">Basal Engine (BMR)</div>
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--c-text);">{{ result.bmr }} <span style="font-size: 1rem; color: var(--c-text-muted); font-weight: 400;">kcal</span></div>
                         </div>
-                        <div class="carb-day-card medium-carb">
-                            <div class="carb-day-type">Medium Carb Days</div>
-                            <div class="carb-amount">{{ result.medium_carb_g }}g carbs</div>
-                            <div class="carb-calories">{{ result.medium_carb_calories }} calories</div>
-                            <div class="carb-note">Light training</div>
-                        </div>
-                        <div class="carb-day-card low-carb">
-                            <div class="carb-day-type">Low Carb Days</div>
-                            <div class="carb-amount">{{ result.low_carb_g }}g carbs</div>
-                            <div class="carb-calories">{{ result.low_carb_calories }} calories</div>
-                            <div class="carb-note">Rest days</div>
+                        <div style="padding: 1.5rem; border: 1px solid var(--c-border); border-radius: var(--rad-sm);">
+                            <div class="t-muted" style="font-size: 0.8rem; margin-bottom: 0.5rem; text-transform: uppercase;">Total Load (TDEE)</div>
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--c-accent-color);">{{ result.tdee }} <span style="font-size: 1rem; color: var(--c-text-muted); font-weight: 400;">kcal</span></div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Weekly Schedule -->
-                <div class="weekly-schedule">
-                    <h3>Suggested Weekly Plan</h3>
-                    <p class="schedule-note">Match high-carb days to training days, low-carb on rest days</p>
-                    <div class="schedule-grid">
-                        {% for day in result.weekly_schedule %}
-                        <div class="schedule-day {{ day.carb_type|lower }}-day">
-                            <div class="day-name">{{ day.day }}</div>
-                            <div class="day-carb-type">{{ day.carb_type }} Carb</div>
-                            <div class="day-carbs">{{ day.carbs|floatformat:1 }}g</div>
-                            <div class="day-calories">{{ day.calories }} cal</div>
+                    
+                    <h3 class="t-h3" style="margin-bottom: 1.5rem;">Macro Architecture</h3>
+                    <div style="margin-bottom: 3rem;">
+                        <div style="display: flex; gap: 3rem; margin-bottom: 1rem;">
+                            <div>
+                                <div class="t-muted" style="font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.2rem;">Fixed Protein</div>
+                                <div style="font-weight: 600; font-size: 1.5rem;">{{ result.protein_g }}g</div>
+                            </div>
+                            <div>
+                                <div class="t-muted" style="font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.2rem;">Fixed Fats</div>
+                                <div style="font-weight: 600; font-size: 1.5rem;">{{ result.fat_g }}g</div>
+                            </div>
                         </div>
-                        {% endfor %}
+                        <p class="t-muted" style="font-size: 0.9rem;">Protein and fats remain locked. Carbohydrates oscillate to fuel workouts and torch fat.</p>
                     </div>
-                </div>
-
-                <!-- Guidelines -->
-                <div class="guidelines-section">
-                    <h3>Implementation Guidelines</h3>
-                    <div class="guidelines-grid">
-                        <div class="guideline-card">
-                            <div class="guideline-icon">💪</div>
-                            <h4>High Carb Days</h4>
-                            <p>Consume on intense training days. Focus on complex carbs around workouts for optimal performance and recovery.</p>
+                    
+                    <h3 class="t-h3" style="margin-bottom: 1.5rem;">Oscillation Target</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                        <div style="padding: 1.5rem; background: var(--c-surface-elevated); border-radius: var(--rad-sm);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600; color: var(--c-accent-color);">HIGH CARB [Training]</span>
+                                <span style="font-weight: 700; font-size: 1.25rem;">{{ result.high_carb_g }}g</span>
+                            </div>
+                            <div class="t-muted" style="font-size: 0.85rem;">Total: {{ result.high_carb_calories }} kcal. Consume mostly around the workout window.</div>
                         </div>
-                        <div class="guideline-card">
-                            <div class="guideline-icon">⚖️</div>
-                            <h4>Medium Carb Days</h4>
-                            <p>Moderate training or active recovery days. Balanced approach to maintain energy while promoting fat utilization.</p>
+                        <div style="padding: 1.5rem; background: var(--c-surface-elevated); border-radius: var(--rad-sm);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600;">MED CARB [Light]</span>
+                                <span style="font-weight: 700; font-size: 1.25rem;">{{ result.medium_carb_g }}g</span>
+                            </div>
+                            <div class="t-muted" style="font-size: 0.85rem;">Total: {{ result.medium_carb_calories }} kcal. For active recovery or zone 2 cardio.</div>
                         </div>
-                        <div class="guideline-card">
-                            <div class="guideline-icon">🔥</div>
-                            <h4>Low Carb Days</h4>
-                            <p>Rest days or light activity. Promote fat burning while maintaining muscle mass with adequate protein.</p>
+                        <div style="padding: 1.5rem; background: var(--c-surface-elevated); border-radius: var(--rad-sm);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600; color: #ff5555;">LOW CARB [Rest]</span>
+                                <span style="font-weight: 700; font-size: 1.25rem;">{{ result.low_carb_g }}g</span>
+                            </div>
+                            <div class="t-muted" style="font-size: 0.85rem;">Total: {{ result.low_carb_calories }} kcal. Emphasize protein and fats.</div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
-        </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="surface-card" style="padding: 4rem 2rem; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🔄</div>
+                <h3 class="t-h3" style="margin-bottom: 1rem;">Awaiting Inputs</h3>
+                <p class="t-muted" style="max-width: 300px;">Input your telemetrics on the left to generate the non-linear macro protocol.</p>
+            </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+    .fittar-input, .fittar-select {
+        width: 100%;
+        background: var(--c-bg);
+        border: 1px solid var(--c-border);
+        color: var(--c-text);
+        padding: 0.8rem 1rem;
+        border-radius: var(--rad-pill);
+        font-size: 0.95rem;
+        font-family: var(--font-main);
+        transition: var(--trans-fast);
+        outline: none;
+    }
+    .fittar-input:focus, .fittar-select:focus {
+        border-color: var(--c-accent-color);
+        background: var(--c-bg);
+    }
+    .fittar-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem top 50%;
+        background-size: 0.65em auto;
+        padding-right: 2.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .fittar-grid { grid-template-columns: 1fr !important; }
+    }
+</style>
 {% endblock %}

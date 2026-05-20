@@ -1,64 +1,198 @@
 {% extends 'base.html' %}
+{% block title %}{{ workout_name|title }} Training | Stay Hard Fitness{% endblock %}
+
 {% block content %}
-<div class="workout-page-container">
-  <h2>{{ workout_name|title }}</h2>
-  <div class="workout-info">
-    <div class="tips-panel">
-      <h3>Form Tips:</h3>
-      <ul id="tips-list">
+<div class="animate-up" style="max-width: 1200px; margin-top: 2rem; margin-bottom: 3rem;">
+  <h1 class="t-h1 mb-2">{{ workout_name|title }} <span class="t-accent">Module</span></h1>
+  <p class="t-muted" style="font-size: 1.25rem;">Real-time computer vision analysis and rep counting.</p>
+</div>
+
+<div class="fittar-grid animate-up" style="grid-template-columns: 2fr 1fr; align-items: start; gap: 2.5rem; margin-top: 0;">
+  
+  <!-- Video Feed Container with HUD Overlay -->
+  <div class="surface-card glass-panel" style="padding: 1.5rem; position: relative; overflow: hidden; background: #080808;">
+    <div style="position: relative; width: 100%; border-radius: var(--rad-md); overflow: hidden; border: 1px solid var(--c-border); aspect-ratio: 4/3; background: #000;">
+      <!-- Webcam Feed -->
+      <img id="video-stream" src="{% url 'video_feed' workout_name %}" alt="AI Telemetry Stream" style="width: 100%; height: 100%; object-fit: cover;" />
+      
+      <!-- High-Tech HUD Stats Display Overlay -->
+      <div style="position: absolute; bottom: 1.5rem; left: 1.5rem; right: 1.5rem; display: flex; gap: 1rem; pointer-events: none;">
+        
+        <!-- Reps HUD Panel -->
+        <div style="flex: 1; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--rad-sm); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--c-accent-color);">
+          <div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--c-text-muted); font-weight: 600; letter-spacing: 0.05em;">Total Reps</div>
+            <div id="rep-counter" style="font-size: 2.25rem; font-weight: 800; color: #fff; margin-top: 0.25rem; line-height: 1;">0</div>
+          </div>
+          <div style="font-size: 1.75rem;">🔥</div>
+        </div>
+
+        <!-- Stage HUD Panel -->
+        <div style="flex: 1; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--rad-sm); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid #ffcc00;">
+          <div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--c-text-muted); font-weight: 600; letter-spacing: 0.05em;">Movement Stage</div>
+            <div id="stage-indicator" style="font-size: 1.5rem; font-weight: 700; color: #ffcc00; margin-top: 0.25rem; line-height: 1;">Ready</div>
+          </div>
+          <div style="font-size: 1.75rem;">⚡</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- HUD Control Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c-accent-color); box-shadow: 0 0 10px var(--c-accent-color); animation: pulse 2s infinite;"></span>
+        <span style="font-size: 0.9rem; color: var(--c-text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">AI Telemetry Active</span>
+      </div>
+
+      <div style="display: flex; gap: 1rem;">
+        <button id="voice-toggle" class="btn-outline" style="padding: 0.6rem 1.5rem; font-size: 0.9rem; border-color: rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 0.5rem;">
+          <span>🔊</span> Voice Guidance
+        </button>
+        <button id="complete-session" class="btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: var(--c-accent-color); border: none; color: #000; border-radius: var(--rad-sm); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+          <span>🏆</span> Complete Session
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Tips & Instructions Sidebar -->
+  <div style="display: flex; flex-direction: column; gap: 2rem;">
+    
+    <div class="surface-card" style="padding: 2.5rem;">
+      <h3 class="t-h3" style="margin-bottom: 1.5rem; color: var(--c-accent-color); font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🎯</span> Biomechanics
+      </h3>
+      <ul style="list-style-type: none; padding-left: 0; display: flex; flex-direction: column; gap: 1rem;">
         {% if workout_name == 'squats' %}
-          <li>Keep your back straight</li>
-          <li>Knees should not go past toes</li>
-          <li>Go down until thighs are parallel</li>
-          <li>Keep chest up and core engaged</li>
+          <li class="tips-item"><strong>Posture Alignment:</strong> Keep spinal column straight and core firmly engaged throughout the movement.</li>
+          <li class="tips-item"><strong>Joint Protection:</strong> Patella (knees) must track in line with toes, never buckling inwards.</li>
+          <li class="tips-item"><strong>Depth Target:</strong> Descend until femur is completely parallel to the platform floor.</li>
         {% elif workout_name == 'pushups' %}
-          <li>Keep body in a straight line</li>
-          <li>Lower until chest nearly touches ground</li>
-          <li>Don't let hips sag</li>
-          <li>Control both up and down movement</li>
+          <li class="tips-item"><strong>Spinal Tension:</strong> Lock pelvis and core in a perfectly straight geometric vector.</li>
+          <li class="tips-item"><strong>Full Depth:</strong> Lower ribcage control until chest is 2 inches off the ground.</li>
+          <li class="tips-item"><strong>Elbow Path:</strong> Flare elbows at roughly 45 degrees, protecting glenohumeral joints.</li>
         {% elif workout_name == 'bicep_curls' or workout_name == 'hammer_curls' %}
-          <li>Keep elbows stable at your sides</li>
-          <li>Control the weight on the way down</li>
-          <li>Full range of motion</li>
-          <li>Don't swing your body</li>
+          <li class="tips-item"><strong>Isolation Lock:</strong> Keep glenohumeral and elbow joints pinned flush to sides.</li>
+          <li class="tips-item"><strong>Controlled Descent:</strong> Resist gravitational path during eccentric lowering phase.</li>
+          <li class="tips-item"><strong>Full Motion:</strong> Initiate from dead bottom hang, curling up to peak bicep compression.</li>
         {% elif workout_name == 'side_raises' %}
-          <li>Raise arms to shoulder level</li>
-          <li>Slight bend in elbows</li>
-          <li>Control the descent</li>
-          <li>Don't use momentum</li>
+          <li class="tips-item"><strong>Arm Alignment:</strong> Elevate strictly in the scapular plane, elbows slightly flexed.</li>
+          <li class="tips-item"><strong>Height Target:</strong> Pause immediately at lateral shoulder level (90 degrees).</li>
+          <li class="tips-item"><strong>Momentum Cut:</strong> Eliminate torso rocking; isolate the medial deltoid fibers.</li>
         {% endif %}
       </ul>
     </div>
-  </div>
-  <div class="video-container">
-    <img id="video-stream" src="{% url 'video_feed' workout_name %}" alt="Video stream" />
-    <div class="workout-stats">
-      <div class="stat-item">
-        <span class="stat-label">Reps:</span>
-        <span class="stat-value" id="rep-counter">0</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Stage:</span>
-        <span class="stat-value" id="stage-indicator">Ready</span>
-      </div>
+
+    <div class="surface-card glass-panel" style="padding: 2rem; text-align: center;">
+      <p style="color: var(--c-text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem;">Need to select a different training routine?</p>
+      <a href="{% url 'workout_selection' %}" class="btn-primary" style="display: block; width: 100%; text-align: center; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; font-weight: 700;">
+        Back to Dashboard
+      </a>
     </div>
+
   </div>
-  <div class="controls">
-    <button id="voice-toggle" class="btn">🔊 Voice ON</button>
-    <a href="{% url 'workout_selection' %}" class="back-link">Back to selection</a>
-  </div>
+
 </div>
+
+<style>
+  .tips-item {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--c-text-muted);
+    position: relative;
+    padding-left: 1.25rem;
+  }
+  .tips-item::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--c-accent-color);
+    font-weight: bold;
+  }
+  @keyframes pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+  }
+  @media (max-width: 900px) {
+    .fittar-grid { grid-template-columns: 1fr !important; }
+  }
+</style>
+
 <script>
 let voiceEnabled = true;
-document.getElementById('voice-toggle').addEventListener('click', function() {
+const voiceToggle = document.getElementById('voice-toggle');
+
+voiceToggle.addEventListener('click', function() {
   voiceEnabled = !voiceEnabled;
-  this.textContent = voiceEnabled ? '🔊 Voice ON' : '🔇 Voice OFF';
-  this.style.background = voiceEnabled ? '#ffb300' : '#666';
+  const statusSpan = voiceToggle.querySelector('span');
+  if (voiceEnabled) {
+    statusSpan.textContent = '🔊';
+    voiceToggle.style.color = 'var(--c-text)';
+    voiceToggle.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+    voiceToggle.style.boxShadow = 'none';
+  } else {
+    statusSpan.textContent = '🔇';
+    voiceToggle.style.color = '#ff5555';
+    voiceToggle.style.borderColor = 'rgba(255, 85, 85, 0.3)';
+    voiceToggle.style.boxShadow = '0 0 10px rgba(255, 85, 85, 0.1)';
+  }
 });
 
-// Auto-refresh stats from video overlay (the rep counting is handled by the backend)
-setInterval(function() {
-  // Stats are displayed in the video overlay, this is just for UI enhancement
-}, 1000);
+// Real-time rep counting / stage telemetry sync
+const repVal = document.getElementById('rep-counter');
+const stageVal = document.getElementById('stage-indicator');
+let latestFeedback = ["Calibrating biomechanics..."];
+
+// Periodically check page stats
+const statsInterval = setInterval(() => {
+  fetch('/api/workout-stats/')
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.active) {
+        repVal.textContent = data.rep_count;
+        stageVal.textContent = data.stage;
+        latestFeedback = data.feedback || ["Perfect spinal vector position"];
+      }
+    })
+    .catch(err => console.error("Error polling telemetry stats:", err));
+}, 500);
+
+// Session completion workflow
+const completeBtn = document.getElementById('complete-session');
+completeBtn.addEventListener('click', function() {
+  clearInterval(statsInterval);
+  
+  const payload = {
+    exercise_name: "{{ workout_name }}",
+    rep_count: parseInt(repVal.textContent) || 0,
+    stage: stageVal.textContent || 'Ready',
+    feedback: latestFeedback
+  };
+  
+  // Post session data to DB
+  fetch('/api/save-posture-analysis/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      window.location.href = '/posture-analysis/';
+    } else {
+      alert("Error saving workout analysis: " + data.message);
+    }
+  })
+  .catch(err => {
+    console.error("Save posture analysis error:", err);
+    window.location.href = '/posture-analysis/';
+  });
+});
 </script>
 {% endblock %}

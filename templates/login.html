@@ -1,194 +1,53 @@
 {% extends 'base.html' %}
-{% block title %}Login - Stay Hard Fitness{% endblock %}
-{% block content %}
-<div class="simple-login-container">
-  <div class="simple-login-card">
-    <div class="login-header">
-      <h1>🏋️ Stay Hard Fitness</h1>
-      <p>Sign in to continue</p>
+{% block title %}Log In | Stay Hard Fitness{% endblock %}
+
+{% block content_wrapper %}
+<div class="fittar-auth-container">
+  <div class="fittar-auth-card surface-card animate-up" style="animation-delay: 0.1s;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <h1 class="t-h2">Welcome back.</h1>
+      <p class="t-muted">Enter your details to access your dashboard.</p>
     </div>
     
-    {% if messages %}
-      {% for message in messages %}
-        <div class="simple-message">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-    
-    <form method="post" class="simple-form">
+    <form method="post">
       {% csrf_token %}
       
-      <div class="simple-field">
-        <label>Username</label>
-        {{ form.username }}
+      <div class="fittar-input-group">
+        <input type="text" name="username" class="fittar-input" placeholder="Username" required>
         {% if form.username.errors %}
-          <div class="simple-error">{{ form.username.errors.0 }}</div>
+          <ul class="errorlist">
+            {% for error in form.username.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
         {% endif %}
       </div>
       
-      <div class="simple-field">
-        <label>Password</label>
-        {{ form.password }}
+      <div class="fittar-input-group">
+        <input type="password" name="password" class="fittar-input" placeholder="Password" required>
         {% if form.password.errors %}
-          <div class="simple-error">{{ form.password.errors.0 }}</div>
+          <ul class="errorlist">
+            {% for error in form.password.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
         {% endif %}
       </div>
-      
+
       {% if form.non_field_errors %}
-        <div class="simple-error">{{ form.non_field_errors.0 }}</div>
+        <ul class="errorlist" style="margin-bottom: 1.5rem; text-align: center;">
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
       {% endif %}
       
-      <button type="submit" class="simple-btn">
-        Sign In
-      </button>
+      <button type="submit" class="btn-primary fittar-btn-block">Sign In</button>
     </form>
     
-    <div class="login-footer">
-      <a href="{% url 'signup' %}">Create new account</a>
+    <div style="text-align: center; margin-top: 2rem; color: var(--c-text-muted); font-size: 0.95rem;">
+      New to Stay Hard? <a href="{% url 'signup' %}" style="color: var(--c-text); font-weight: 600;">Create an account</a>.
     </div>
   </div>
 </div>
-
-<style>
-/* Simple, Clean Login Styles */
-.simple-login-container {
-  min-height: 80vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: #f8f9fa !important;
-}
-
-.simple-login-card {
-  background: white !important;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  padding: 40px;
-  width: 100%;
-  max-width: 400px;
-  border: 1px solid #e9ecef;
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.login-header h1 {
-  color: #dc3545 !important;
-  font-size: 24px !important;
-  font-weight: 700 !important;
-  margin-bottom: 8px !important;
-}
-
-.login-header p {
-  color: #6c757d !important;
-  font-size: 16px !important;
-  margin: 0 !important;
-}
-
-.simple-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.simple-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.simple-field label {
-  color: #495057 !important;
-  font-weight: 600 !important;
-  font-size: 14px !important;
-}
-
-.simple-field input {
-  width: 100% !important;
-  padding: 12px 16px !important;
-  border: 2px solid #dee2e6 !important;
-  border-radius: 8px !important;
-  font-size: 16px !important;
-  color: #495057 !important;
-  background: white !important;
-  box-sizing: border-box !important;
-}
-
-.simple-field input:focus {
-  outline: none !important;
-  border-color: #dc3545 !important;
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
-}
-
-.simple-btn {
-  width: 100% !important;
-  padding: 14px 20px !important;
-  background: #dc3545 !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 8px !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  margin-top: 10px !important;
-}
-
-.simple-btn:hover {
-  background: #c82333 !important;
-}
-
-.login-footer {
-  text-align: center;
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid #e9ecef;
-}
-
-.login-footer a {
-  color: #dc3545 !important;
-  text-decoration: none !important;
-  font-weight: 500 !important;
-}
-
-.login-footer a:hover {
-  text-decoration: underline !important;
-}
-
-.simple-error {
-  color: #dc3545 !important;
-  font-size: 14px !important;
-  background: #f8d7da !important;
-  padding: 8px 12px !important;
-  border-radius: 6px !important;
-  border: 1px solid #f5c6cb !important;
-}
-
-.simple-message {
-  color: #155724 !important;
-  font-size: 14px !important;
-  background: #d4edda !important;
-  padding: 12px 16px !important;
-  border-radius: 6px !important;
-  border: 1px solid #c3e6cb !important;
-  margin-bottom: 20px !important;
-  text-align: center !important;
-}
-
-body {
-  background: #f8f9fa !important;
-}
-
-@media (max-width: 768px) {
-  .simple-login-card {
-    padding: 30px 20px;
-    margin: 20px;
-  }
-  
-  .login-header h1 {
-    font-size: 20px !important;
-  }
-}
-</style>
 {% endblock %}

@@ -1,135 +1,86 @@
 {% extends 'base.html' %}
 
-{% block title %}Pose Correction - Stay Hard Fitness{% endblock %}
+{% block title %}Pose Correction | Stay Hard Fitness{% endblock %}
 
 {% block content %}
-<div class="pose-correction-page">
-    <div class="page-header">
-        <div class="header-content">
-            <h1>Pose Correction</h1>
-            <p class="page-description">AI-powered real-time form analysis and rep counting for perfect workouts</p>
-        </div>
-        <div class="header-features">
-            <div class="feature-item">
-                <span class="feature-icon">🤖</span>
-                <span class="feature-text">AI Detection</span>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">📊</span>
-                <span class="feature-text">Form Analysis</span>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">🔔</span>
-                <span class="feature-text">Real-time Feedback</span>
-            </div>
-        </div>
-    </div>
+<div class="animate-up" style="max-width: 800px; margin-top: 2rem; margin-bottom: 3rem;">
+    <h1 class="t-h1 mb-2">Pose <span class="t-accent">Correction</span></h1>
+    <p class="t-muted" style="font-size: 1.25rem;">Real-time AI form analysis and precision rep counting.</p>
+</div>
 
-    <div class="exercises-section">
-        <h2>Available Exercises</h2>
-        
-        {% if pose_exercises %}
-            <div class="exercise-grid">
-                {% for exercise_key, exercise in pose_exercises.items %}
-                    <a href="{% url 'workout_page' exercise_key %}" class="exercise-card">
-                        <div class="card-header">
-                            <div class="exercise-icon">
-                                {% if exercise.name == 'Squats' %}🦵
-                                {% elif exercise.name == 'Push-ups' %}💪
-                                {% elif exercise.name == 'Bicep Curls' %}💪
-                                {% elif exercise.name == 'Hammer Curls' %}🔨
-                                {% elif exercise.name == 'Side Raises' %}🏋️
-                                {% else %}💪
-                                {% endif %}
-                            </div>
-                            <div class="exercise-info">
-                                <h3>{{ exercise.name }}</h3>
-                                <span class="difficulty-badge {{ exercise.difficulty|lower }}">{{ exercise.difficulty }}</span>
-                            </div>
+<!-- Available Exercises -->
+<div class="animate-up" style="animation-delay: 0.1s;">
+    <h2 class="t-h2" style="margin-bottom: 2rem;">Select Exercise</h2>
+    
+    {% if pose_exercises %}
+        <div class="fittar-grid" style="margin-top: 0;">
+            {% for exercise_key, exercise in pose_exercises.items %}
+                <a href="{% url 'workout_page' exercise_key %}" class="fittar-card surface-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <div class="fittar-card-icon" style="margin-bottom: 0;">
+                            {% if exercise.name == 'Squats' %}🦵
+                            {% elif exercise.name == 'Push-ups' %}💪
+                            {% elif exercise.name == 'Bicep Curls' %}💪
+                            {% elif exercise.name == 'Hammer Curls' %}🔨
+                            {% elif exercise.name == 'Side Raises' %}🏋️
+                            {% else %}💪
+                            {% endif %}
                         </div>
-                        
-                        <div class="card-content">
-                            <p class="exercise-description">{{ exercise.description }}</p>
-                            
-                            <div class="muscle-targets">
-                                <span class="label">Target Muscles:</span>
-                                <div class="muscle-list">
-                                    {% for muscle in exercise.muscles %}
-                                        <span class="muscle-tag">{{ muscle }}</span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            
-                            <div class="features-list">
-                                <div class="feature">
-                                    <span class="check-icon">✅</span>
-                                    <span>Real-time form analysis</span>
-                                </div>
-                                <div class="feature">
-                                    <span class="check-icon">✅</span>
-                                    <span>Automatic rep counting</span>
-                                </div>
-                                <div class="feature">
-                                    <span class="check-icon">✅</span>
-                                    <span>Instant corrections</span>
-                                </div>
-                            </div>
+                        <span class="fittar-tag" style="border-color: var(--c-accent-color); color: var(--c-text);">{{ exercise.difficulty }}</span>
+                    </div>
+                    
+                    <h3>{{ exercise.name }}</h3>
+                    <p>{{ exercise.description }}</p>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <span class="t-muted" style="font-size: 0.85rem; text-transform: uppercase;">Targets:</span>
+                        <div class="fittar-tags" style="margin-top: 0.5rem;">
+                            {% for muscle in exercise.muscles %}
+                                <span class="fittar-tag">{{ muscle }}</span>
+                            {% endfor %}
                         </div>
-                        
-                        <div class="card-footer">
-                            <div class="start-btn">
-                                <span class="btn-icon">🎯</span>
-                                <span>Start Analysis</span>
-                            </div>
-                        </div>
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">😔</div>
-                <h3>No Exercises Available</h3>
-                <p>Pose correction exercises are currently being updated. Check back soon!</p>
-                <a href="{% url 'workout_selection' %}" class="btn btn-outline">← Back to All Workouts</a>
-            </div>
-        {% endif %}
-    </div>
+                    </div>
+                    
+                    <div style="margin-top: auto;">
+                        <div class="btn-outline" style="display: inline-block; text-align: center; width: 100%;">Initialize Lens &rarr;</div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="surface-card" style="padding: 4rem 2rem; text-align: center; border-style: dashed;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">😔</div>
+            <h3 class="t-h3" style="margin-bottom: 1rem;">Systems Offline</h3>
+            <p class="t-muted" style="margin-bottom: 2rem;">Pose correction modules are currently being upgraded.</p>
+            <a href="{% url 'workout_selection' %}" class="btn-primary">Return to Dashboard</a>
+        </div>
+    {% endif %}
+</div>
 
-    <div class="how-it-works">
-        <h2>How It Works</h2>
-        <div class="steps-grid">
-            <div class="step">
-                <div class="step-number">1</div>
-                <h3>Camera Setup</h3>
-                <p>Allow camera access and position yourself in the frame</p>
-            </div>
-            <div class="step">
-                <div class="step-number">2</div>
-                <h3>AI Analysis</h3>
-                <p>Our AI tracks your body position and movement in real-time</p>
-            </div>
-            <div class="step">
-                <div class="step-number">3</div>
-                <h3>Get Feedback</h3>
-                <p>Receive instant corrections and rep counting</p>
-            </div>
-            <div class="step">
-                <div class="step-number">4</div>
-                <h3>Improve Form</h3>
-                <p>Perfect your technique with continuous guidance</p>
-            </div>
+<!-- How it works -->
+<div class="animate-up" style="animation-delay: 0.2s; margin-top: 5rem; margin-bottom: 2rem;">
+    <h2 class="t-h2" style="margin-bottom: 2rem;">The Process</h2>
+    <div class="fittar-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 0;">
+        <div class="surface-card" style="padding: 2rem;">
+            <div style="font-size: 2rem; font-weight: 800; color: var(--c-accent-color); margin-bottom: 1rem;">01</div>
+            <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Calibration</h3>
+            <p class="t-muted">Grant camera access and align your full body within the frame.</p>
+        </div>
+        <div class="surface-card" style="padding: 2rem;">
+            <div style="font-size: 2rem; font-weight: 800; color: var(--c-accent-color); margin-bottom: 1rem;">02</div>
+            <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Lock-On</h3>
+            <p class="t-muted">Our AI maps your skeletal joints in real-time space.</p>
+        </div>
+        <div class="surface-card" style="padding: 2rem;">
+            <div style="font-size: 2rem; font-weight: 800; color: var(--c-accent-color); margin-bottom: 1rem;">03</div>
+            <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Execution</h3>
+            <p class="t-muted">Perform the movement. Real-time angular math corrects your form.</p>
         </div>
     </div>
+</div>
 
-    <div class="page-footer">
-        <a href="{% url 'workout_selection' %}" class="footer-btn secondary">
-            <span class="btn-icon">←</span>
-            <span>Back to Workouts</span>
-        </a>
-        <a href="{% url 'posture_analysis' %}" class="footer-btn primary">
-            <span class="btn-icon">📊</span>
-            <span>View History</span>
-        </a>
-    </div>
+<div style="margin-top: 4rem; display: flex; gap: 1rem; justify-content: flex-end;">
+    <a href="{% url 'workout_selection' %}" class="btn-outline">&larr; Back</a>
+    <a href="{% url 'posture_analysis' %}" class="btn-primary">View History &rarr;</a>
 </div>
 {% endblock %}

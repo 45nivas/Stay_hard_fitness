@@ -33,6 +33,11 @@ import requests
 from dotenv import load_dotenv
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+import threading
+
+# Thread-safe global dictionary for workout tracking
+WORKOUT_STATS = {}
+WORKOUT_STATS_LOCK = threading.Lock()
 
 def home(request):
     if request.user.is_authenticated:
@@ -68,13 +73,25 @@ def workout_selection(request):
 def workout_page(request, workout_name):
     return render(request, 'workout_page.html', {'workout_name': workout_name})
 
-def gen_frames(workout_name):
+def gen_frames(workout_name, user_id=None):
     # Initialize MediaPipe and rep counter
     cap = cv2.VideoCapture(0)
     
     # Check if camera is available
     camera_available = cap.isOpened()
     
+    if user_id:
+        with WORKOUT_STATS_LOCK:
+            WORKOUT_STATS[user_id] = {
+                'workout_name': workout_name,
+                'rep_count': 0,
+                'left_rep_count': 0,
+                'right_rep_count': 0,
+                'stage': 'Ready',
+                'feedback': ["Calibrating camera..."],
+                'active': True
+            }
+            
     if MEDIAPIPE_AVAILABLE:
         mp_pose = mp.solutions.pose
         pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
@@ -122,20 +139,43 @@ def gen_frames(workout_name):
             cv2.putText(placeholder_frame, '3. Ensure good lighting', 
                        (150, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
             
-            # Add demo rep counter
-            cv2.putText(placeholder_frame, 'Demo Mode: Reps: 0', 
-                       (200, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            # Simulated training reps tracking
+            demo_reps = 0
+            stages = ["down", "up"]
+            current_stage_idx = 0
+            last_change = time.time()
             
-            # Add fitness emoji/icon
-            cv2.putText(placeholder_frame, '💪 🏃‍♂️ 🏋️‍♀️', 
-                       (250, 450), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 100, 100), 2)
-            
-            # Continuously yield the same placeholder frame
+            # Continuously yield the placeholder frame with simulated reps
             while True:
-                ret, buffer = cv2.imencode('.jpg', placeholder_frame)
+                now = time.time()
+                if now - last_change > 3:
+                    current_stage_idx = (current_stage_idx + 1) % 2
+                    if stages[current_stage_idx] == "up":
+                        demo_reps += 1
+                    last_change = now
+                
+                frame_to_send = placeholder_frame.copy()
+                cv2.putText(frame_to_send, f'Demo Mode: Reps: {demo_reps}', 
+                           (200, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                cv2.putText(frame_to_send, f'Stage: {stages[current_stage_idx].upper()}', 
+                           (200, 430), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+                
+                if user_id:
+                    with WORKOUT_STATS_LOCK:
+                        WORKOUT_STATS[user_id] = {
+                            'workout_name': workout_name,
+                            'rep_count': demo_reps,
+                            'left_rep_count': 0,
+                            'right_rep_count': 0,
+                            'stage': stages[current_stage_idx].upper(),
+                            'feedback': ["Simulated training active", "Maintain solid posture vector", "Eccentric contraction control"],
+                            'active': True
+                        }
+                
+                ret, buffer = cv2.imencode('.jpg', frame_to_send)
                 frame = buffer.tobytes()
                 yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-                time.sleep(0.1)  # Small delay to prevent overwhelming the connection
+                time.sleep(0.1)
         
         # Normal camera processing
         while True:
@@ -193,6 +233,16 @@ def gen_frames(workout_name):
                     for i, tip in enumerate(tips[:3]):  # Show only 3 tips
                         cv2.putText(image, tip, (10, 150 + i*25), 
                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+                    if user_id:
+                        with WORKOUT_STATS_LOCK:
+                            WORKOUT_STATS[user_id].update({
+                                'rep_count': counter.rep_count,
+                                'left_rep_count': getattr(counter, 'left_rep_count', 0),
+                                'right_rep_count': getattr(counter, 'right_rep_count', 0),
+                                'stage': counter.stage or 'Ready',
+                                'feedback': tips
+                            })
             else:
                 # Fallback display when MediaPipe is not available
                 image = frame
@@ -210,13 +260,17 @@ def gen_frames(workout_name):
     except Exception as e:
         print(f"Error in video generation: {e}")
     finally:
+        if user_id:
+            with WORKOUT_STATS_LOCK:
+                if user_id in WORKOUT_STATS:
+                    WORKOUT_STATS[user_id]['active'] = False
         if counter:
             counter.cleanup()
         cap.release()
 
 @login_required
 def video_feed(request, workout_name):
-    return StreamingHttpResponse(gen_frames(workout_name), content_type='multipart/x-mixed-replace; boundary=frame')
+    return StreamingHttpResponse(gen_frames(workout_name, request.user.id), content_type='multipart/x-mixed-replace; boundary=frame')
 
 @login_required
 def fitness_chat(request):
@@ -328,7 +382,7 @@ def fitness_chat(request):
     
     # Professional welcome message for new sessions
     if not messages and not show_history:
-        welcome_message = "Hello! I'm your AI fitness trainer. I can help you with workout plans, nutrition advice, and fitness goals. How can I assist you today?"
+        welcome_message = "Welcome to OS Architect. I am your Senior Fitness & Nutrition Coach. Let's build your transformation protocol or address your biomechanics queries."
     else:
         welcome_message = None
     
@@ -337,7 +391,8 @@ def fitness_chat(request):
         'messages': messages,
         'welcome_message': welcome_message,
         'user_data': chatbot.get_user_profile_summary(),
-        'session_id': session_id
+        'session_id': session_id,
+        'is_gemini_active': bool(os.getenv("GEMINI_API_KEY"))
     }
     
     return render(request, 'fitness_chat.html', context)
@@ -521,7 +576,7 @@ load_dotenv()
 
 # Gemini API Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 # Comprehensive nutrition database - ChatGPT-level accuracy (per 100g)
 NUTRITION_DATABASE = {
@@ -1055,9 +1110,7 @@ def pose_correction(request):
 @login_required  
 def posture_analysis(request):
     """Posture analysis history page"""
-    # You can add logic here to fetch actual analysis data from database
-    # For now, returning empty context
-    analyses = []  # This would contain actual PostureAnalysis objects
+    analyses = PostureAnalysis.objects.filter(user=request.user)
     return render(request, 'posture_analysis.html', {'analyses': analyses})
 
 import os
@@ -1072,7 +1125,7 @@ load_dotenv()
 
 # Gemini API Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 def smart_food_lookup_with_gemini(food_name, quantity, unit):
     """Enhanced food lookup with Gemini API fallback for gym nutrition tracking"""
@@ -1205,3 +1258,54 @@ def get_generic_fallback(quantity=1, unit="serving"):
         base_nutrition[key] = round(base_nutrition[key] * multiplier, 1)
     
     return base_nutrition
+
+@login_required
+def workout_stats_api(request):
+    """API to fetch the active user's workout statistics from the global coordinator."""
+    user_id = request.user.id
+    with WORKOUT_STATS_LOCK:
+        stats = WORKOUT_STATS.get(user_id, {
+            'workout_name': 'None',
+            'rep_count': 0,
+            'left_rep_count': 0,
+            'right_rep_count': 0,
+            'stage': 'Ready',
+            'feedback': ["No active session detected."],
+            'active': False
+        })
+    return JsonResponse(stats)
+
+@csrf_exempt
+@login_required
+def save_posture_analysis(request):
+    """API to save a completed posture analysis session to the database."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            exercise_name = data.get('exercise_name', 'Unknown')
+            rep_count = int(data.get('rep_count', 0))
+            stage = data.get('stage', 'Ready')
+            feedback = data.get('feedback', '')
+            if isinstance(feedback, list):
+                improvement_tips = feedback
+                feedback_str = ", ".join(feedback) if feedback else "No feedback provided."
+            else:
+                feedback_str = str(feedback)
+                improvement_tips = [feedback_str] if feedback_str else []
+
+            # Calculate a synthetic posture score based on quality/reps (e.g., 90 - 5 * bad alignment tips, min 60)
+            bad_tips_count = sum(1 for tip in improvement_tips if any(kw in tip.lower() for kw in ['bad', 'wrong', 'incorrect', 'improve', 'keep', 'maintain', 'adjust']))
+            posture_score = max(60.0, min(100.0, 95.0 - (bad_tips_count * 5.0)))
+
+            # Create PostureAnalysis record
+            analysis = PostureAnalysis.objects.create(
+                user=request.user,
+                exercise_name=exercise_name.replace("_", " ").title(),
+                posture_score=posture_score,
+                feedback=feedback_str,
+                improvement_tips=improvement_tips
+            )
+            return JsonResponse({'status': 'success', 'id': analysis.id})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)

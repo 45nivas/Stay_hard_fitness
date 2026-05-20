@@ -1,144 +1,136 @@
 {% extends 'base.html' %}
 
-{% block title %}Profile Setup - Stay Hard Fitness{% endblock %}
+{% block title %}Profile Setup | Stay Hard Fitness{% endblock %}
 
 {% block content %}
-<div class="profile-setup-page">
-    <div class="profile-container">
-        <div class="profile-header">
-            <div class="header-icon">👤</div>
-            <h1>Fitness Profile</h1>
-            <p class="header-description">Set up your profile to get personalized AI-powered fitness guidance</p>
-        </div>
+<div class="animate-up" style="max-width: 800px; margin-top: 2rem; margin-bottom: 3rem;">
+    <h1 class="t-h1 mb-2">Your <span class="t-accent">Profile</span></h1>
+    <p class="t-muted" style="font-size: 1.25rem;">Calibrate your metrics for personalized AI routing.</p>
+</div>
+
+<div class="animate-up" style="animation-delay: 0.1s;">
+    <div class="surface-card" style="padding: 3rem; max-width: 900px; margin: 0 auto;">
         
-        <form method="post" class="profile-form">
+        <!-- Action Buttons top -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+             <a href="{% url 'workout_selection' %}" class="btn-outline" style="padding: 0.5rem 1rem; font-size: 0.85rem;">&larr; Dashboard</a>
+        </div>
+
+        <form method="post">
             {% csrf_token %}
             
-            <!-- Personal Information Section -->
-            <div class="form-section">
-                <div class="section-header">
-                    <h2>Personal Information</h2>
-                    <span class="section-icon">📋</span>
-                </div>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="{{ form.age.id_for_label }}" class="form-label">Age</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 3rem;">
+                <!-- Section 1 -->
+                <div>
+                    <h3 class="t-h3" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--c-border); padding-bottom: 1rem;">Biometrics</h3>
+                    
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Age</label>
                         {{ form.age }}
-                        {% if form.age.errors %}
-                            <div class="error-message">{{ form.age.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.age.errors %}<div class="errorlist">{{ form.age.errors.0 }}</div>{% endif %}
                     </div>
                     
-                    <div class="form-group">
-                        <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Gender</label>
                         {{ form.gender }}
-                        {% if form.gender.errors %}
-                            <div class="error-message">{{ form.gender.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.gender.errors %}<div class="errorlist">{{ form.gender.errors.0 }}</div>{% endif %}
                     </div>
                     
-                    <div class="form-group">
-                        <label for="{{ form.height.id_for_label }}" class="form-label">Height (cm)</label>
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Height (cm)</label>
                         {{ form.height }}
-                        {% if form.height.errors %}
-                            <div class="error-message">{{ form.height.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.height.errors %}<div class="errorlist">{{ form.height.errors.0 }}</div>{% endif %}
                     </div>
                     
-                    <div class="form-group">
-                        <label for="{{ form.weight.id_for_label }}" class="form-label">Weight (kg)</label>
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Weight (kg)</label>
                         {{ form.weight }}
-                        {% if form.weight.errors %}
-                            <div class="error-message">{{ form.weight.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.weight.errors %}<div class="errorlist">{{ form.weight.errors.0 }}</div>{% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Fitness Goals Section -->
-            <div class="form-section">
-                <div class="section-header">
-                    <h2>Fitness Goals</h2>
-                    <span class="section-icon">🎯</span>
-                </div>
                 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="{{ form.fitness_level.id_for_label }}" class="form-label">Fitness Level</label>
+                <!-- Section 2 -->
+                <div>
+                    <h3 class="t-h3" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--c-border); padding-bottom: 1rem;">Objectives</h3>
+                    
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Fitness Level</label>
                         {{ form.fitness_level }}
-                        {% if form.fitness_level.errors %}
-                            <div class="error-message">{{ form.fitness_level.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.fitness_level.errors %}<div class="errorlist">{{ form.fitness_level.errors.0 }}</div>{% endif %}
                     </div>
                     
-                    <div class="form-group">
-                        <label for="{{ form.primary_goal.id_for_label }}" class="form-label">Primary Goal</label>
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Primary Goal</label>
                         {{ form.primary_goal }}
-                        {% if form.primary_goal.errors %}
-                            <div class="error-message">{{ form.primary_goal.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.primary_goal.errors %}<div class="errorlist">{{ form.primary_goal.errors.0 }}</div>{% endif %}
                     </div>
                     
-                    <div class="form-group full-width">
-                        <label for="{{ form.available_time.id_for_label }}" class="form-label">Available Time (minutes/day)</label>
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Daily Time Block (mins)</label>
                         {{ form.available_time }}
-                        <span class="help-text">How many minutes can you dedicate to working out daily?</span>
-                        {% if form.available_time.errors %}
-                            <div class="error-message">{{ form.available_time.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.available_time.errors %}<div class="errorlist">{{ form.available_time.errors.0 }}</div>{% endif %}
                     </div>
                     
-                    <div class="form-group full-width">
-                        <label for="{{ form.calories_per_day.id_for_label }}" class="form-label">Daily Calorie Intake (Optional)</label>
+                    <div class="fittar-input-group">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--c-text-muted); font-size: 0.9rem;">Daily Calories (Optional)</label>
                         {{ form.calories_per_day }}
-                        <span class="help-text">Leave empty for AI estimation based on your stats</span>
-                        {% if form.calories_per_day.errors %}
-                            <div class="error-message">{{ form.calories_per_day.errors.0 }}</div>
-                        {% endif %}
+                        <span style="display: block; font-size: 0.8rem; color: var(--c-text-dim); margin-top: 0.5rem;">Leave blank for algorithmic estimation.</span>
+                        {% if form.calories_per_day.errors %}<div class="errorlist">{{ form.calories_per_day.errors.0 }}</div>{% endif %}
                     </div>
                 </div>
             </div>
             
-            <!-- Current Stats Section (if profile exists) -->
             {% if profile and profile.id %}
-            <div class="form-section stats-section">
-                <div class="section-header">
-                    <h2>Current Stats</h2>
-                    <span class="section-icon">📊</span>
-                </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">BMI</div>
-                        <div class="stat-value">{{ profile.bmi }}</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Category</div>
-                        <div class="stat-value">{{ profile.bmi_category }}</div>
+            <div style="margin-top: 2rem; padding: 1.5rem; background: var(--c-bg); border-radius: var(--rad-sm); border: 1px dashed var(--c-border);">
+                <div style="display: flex; gap: 2rem; align-items: center;">
+                    <div style="font-size: 2rem;">📊</div>
+                    <div>
+                        <div style="color: var(--c-text-muted); font-size: 0.85rem; text-transform: uppercase;">Current System Status</div>
+                        <div style="font-size: 1.25rem; font-weight: 600;">BMI: {{ profile.bmi }} <span style="font-weight: 400; color: var(--c-text-muted);">({{ profile.bmi_category }})</span></div>
                     </div>
                 </div>
             </div>
             {% endif %}
-            
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    {% if profile and profile.id %}
-                        <span class="btn-icon">🔄</span>
-                        Update Profile
-                    {% else %}
-                        <span class="btn-icon">🚀</span>
-                        Create Profile
-                    {% endif %}
+
+            <div style="margin-top: 3rem; text-align: right;">
+                <button type="submit" class="btn-primary" style="padding: 1rem 3rem;">
+                    {% if profile and profile.id %}SYNC PROFILE{% else %}INITIALIZE PROFILE{% endif %}
                 </button>
-                
-                <a href="{% url 'workout_selection' %}" class="btn btn-outline">
-                    <span class="btn-icon">←</span>
-                    Back to Workouts
-                </a>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+    /* Django form controls styling for profile */
+    .surface-card form input[type="text"],
+    .surface-card form input[type="number"],
+    .surface-card form select {
+        width: 100%;
+        background: var(--c-bg);
+        border: 1px solid var(--c-border);
+        color: var(--c-text);
+        padding: 1rem 1.25rem;
+        border-radius: var(--rad-pill);
+        font-size: 1rem;
+        font-family: var(--font-main);
+        transition: var(--trans-fast);
+        appearance: none;
+    }
+    
+    .surface-card form select {
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right .7em top 50%;
+        background-size: .65em auto;
+        padding-right: 2.5rem;
+    }
+
+    .surface-card form input:focus,
+    .surface-card form select:focus {
+        outline: none;
+        border-color: var(--c-text);
+        background: var(--c-surface-elevated);
+    }
+</style>
 {% endblock %}

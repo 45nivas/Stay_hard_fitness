@@ -1,45 +1,55 @@
 {% extends 'base.html' %}
+{% block title %}Posture History | Stay Hard Fitness{% endblock %}
+
 {% block content %}
-<div class="posture-analysis-container">
-  <h2>📊 Posture Analysis History</h2>
-  
-  {% if analyses %}
-    <div class="analysis-grid">
-      {% for analysis in analyses %}
-        <div class="analysis-card">
-          <div class="analysis-header">
-            <h3>{{ analysis.exercise_name }}</h3>
-            <div class="score-badge score-{{ analysis.posture_score|floatformat:0 }}">
-              {{ analysis.posture_score|floatformat:0 }}%
+<div class="animate-up" style="max-width: 1000px; margin-top: 2rem; margin-bottom: 3rem;">
+    <h1 class="t-h1 mb-2">Posture <span class="t-accent">History</span></h1>
+    <p class="t-muted" style="font-size: 1.25rem;">Biomechanical tracking and spinal alignment records.</p>
+</div>
+
+<div class="animate-up" style="margin-bottom: 3rem;">
+    {% if analyses %}
+      <div class="fittar-grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem;">
+        {% for analysis in analyses %}
+          <div class="surface-card" style="padding: 2.5rem; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+              <h3 class="t-h3" style="font-weight: 700; color: var(--c-text);">{{ analysis.exercise_name }}</h3>
+              <div style="padding: 0.5rem 1rem; border-radius: var(--rad-pill); font-weight: 700; font-size: 0.9rem; background: rgba(0, 255, 136, 0.1); color: var(--c-accent-color); border: 1px solid rgba(0, 255, 136, 0.2);">
+                {{ analysis.posture_score|floatformat:0 }}% Alignment
+              </div>
             </div>
-          </div>
-          
-          <div class="analysis-content">
-            <div class="date">{{ analysis.analysis_date|date:"M d, Y H:i" }}</div>
-            <div class="feedback">{{ analysis.feedback }}</div>
             
-            <div class="improvement-tips">
-              <strong>Improvement Tips:</strong>
-              <ul>
-                {% for tip in analysis.improvement_tips %}
-                  <li>{{ tip }}</li>
-                {% endfor %}
-              </ul>
+            <div style="margin-bottom: 1.5rem;">
+              <div class="t-muted" style="font-size: 0.85rem; text-transform: uppercase; margin-bottom: 0.5rem;">{{ analysis.analysis_date|date:"M d, Y H:i" }}</div>
+              <p style="color: var(--c-text); font-size: 1rem; line-height: 1.6;">{{ analysis.feedback }}</p>
             </div>
+            
+            {% if analysis.improvement_tips %}
+              <div style="border-top: 1px solid var(--c-border); padding-top: 1.5rem; margin-top: 1.5rem;">
+                <strong style="color: var(--c-accent-color); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.75rem;">Biomechanical Corrections:</strong>
+                <ul style="list-style-type: none; padding-left: 0; color: var(--c-text-muted); font-size: 0.95rem; line-height: 1.6;">
+                  {% for tip in analysis.improvement_tips %}
+                    <li style="position: relative; padding-left: 1.5rem; margin-bottom: 0.5rem;">
+                      <span style="position: absolute; left: 0; color: var(--c-accent-color);">→</span> {{ tip }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
           </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="no-data">
-      <p>No posture analysis data yet. Start doing exercises with posture checking to see your progress!</p>
-      <a href="{% url 'workout_selection' %}" class="btn">Start Workouts</a>
-    </div>
-  {% endif %}
-  
-  <div class="action-buttons">
-    <a href="{% url 'workout_recommendations' %}" class="btn">View Recommendations</a>
-    <a href="{% url 'workout_selection' %}" class="btn btn-secondary">Back to Workouts</a>
-  </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="surface-card glass-panel" style="padding: 4rem; text-align: center; max-width: 600px; margin: 0 auto;">
+        <div style="font-size: 3rem; margin-bottom: 1.5rem;">📊</div>
+        <h3 class="t-h3" style="margin-bottom: 1rem;">No Telemetry Recorded</h3>
+        <p class="t-muted" style="line-height: 1.6; margin-bottom: 2rem;">Spinal posture analysis and real-time biomechanics alignment records are not yet registered.</p>
+        <a href="{% url 'workout_selection' %}" class="btn-primary" style="display: inline-block;">Initialize AI Workouts</a>
+      </div>
+    {% endif %}
+</div>
+
+<div class="animate-up" style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+    <a href="{% url 'workout_selection' %}" class="btn-outline" style="min-width: 200px; text-align: center;">View Active Modules</a>
 </div>
 {% endblock %}

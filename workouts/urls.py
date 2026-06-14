@@ -30,4 +30,6 @@ urlpatterns = [
     path('posture-analysis/', views.posture_analysis, name='posture_analysis'),
     path('api/workout-stats/', views.workout_stats_api, name='workout_stats_api'),
     path('api/save-posture-analysis/', views.save_posture_analysis, name='save_posture_analysis'),
+    path('analytics/', views.analytics_dashboard, name='analytics'),
+    path('api/generate-recommendation/', views.generate_adaptive_workout, name='generate_recommendation'),
 ]

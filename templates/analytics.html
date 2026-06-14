@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% block title %}Analytics & Biomechanics Dashboard | Stay Hard Fitness{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN for visual analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  .kpi-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .kpi-card {
+    background: rgba(10, 10, 10, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--rad-md);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+    min-height: 120px;
+  }
+  .kpi-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--c-accent-color);
+  }
+  .kpi-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .kpi-value {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #fff;
+    margin-top: 0.5rem;
+    line-height: 1.1;
+  }
+  .kpi-unit {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--c-accent-color);
+    margin-left: 0.2rem;
+  }
+  .streak-badge {
+    background: linear-gradient(135deg, #ff9900, #ff5500);
+    box-shadow: 0 0 15px rgba(255, 85, 0, 0.4);
+    border: none;
+    color: #fff;
+    padding: 0.5rem 1.25rem;
+    border-radius: 20px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  @media (max-width: 900px) {
+    .chart-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .chart-card {
+    background: rgba(10, 10, 10, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--rad-md);
+    padding: 2rem;
+    min-height: 350px;
+  }
+  .log-section {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  @media (max-width: 900px) {
+    .log-section {
+      grid-template-columns: 1fr;
+    }
+  }
+  .custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  .custom-table th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    letter-spacing: 0.05em;
+  }
+  .custom-table td {
+    padding: 1.25rem 1rem;
+    color: #eee;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.95rem;
+  }
+  .custom-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .tag-pill {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tag-legs { background: rgba(0, 123, 255, 0.15); color: #007bff; border: 1px solid rgba(0, 123, 255, 0.3); }
+  .tag-chest { background: rgba(40, 167, 69, 0.15); color: #28a745; border: 1px solid rgba(40, 167, 69, 0.3); }
+  .tag-biceps { background: rgba(23, 162, 184, 0.15); color: #17a2b8; border: 1px solid rgba(23, 162, 184, 0.3); }
+  .tag-shoulders { background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
+  .tag-back { background: rgba(111, 66, 193, 0.15); color: #6f42c1; border: 1px solid rgba(111, 66, 193, 0.3); }
+  .tag-general { background: rgba(108, 117, 125, 0.15); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="animate-up" style="max-width: 1200px; margin-top: 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 class="t-h1 mb-2">Performance & <span class="t-accent">Telemetry</span></h1>
+    <p class="t-muted" style="font-size: 1.2rem;">Longitudinal biomechanics metrics, training volumes, and predictive routines.</p>
+  </div>
+  <div>
+    <div class="streak-badge">
+      <span>🔥</span> {{ streak }} Day Streak
+    </div>
+  </div>
+</div>
+
+<!-- KPI Dashboard Grid -->
+<div class="kpi-container animate-up">
+  <div class="kpi-card">
+    <div class="kpi-title">Total Workouts</div>
+    <div class="kpi-value">{{ total_workouts }}<span class="kpi-unit">sessions</span></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-title">Lifting Volume</div>
+    <div class="kpi-value">{{ total_volume_lifted }}<span class="kpi-unit">kg</span></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-title">Training Time</div>
+    <div class="kpi-value">{{ total_active_minutes }}<span class="kpi-unit">mins</span></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-title">Avg Posture</div>
+    <div class="kpi-value">{{ avg_posture }}<span class="kpi-unit">%</span></div>
+  </div>
+</div>
+
+<!-- AI Routine Recommendations Section -->
+<div class="surface-card glass-panel animate-up" style="padding: 2rem; margin-bottom: 2.5rem; border-left: 4px solid var(--c-accent-color);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+    <div style="flex: 1; min-width: 280px;">
+      <h3 class="t-h3" style="color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🤖</span> Adaptive AI Training Protocol
+      </h3>
+      <p class="t-muted" style="font-size: 0.95rem; line-height: 1.5; margin: 0;">
+        OS Architect scans your historical telemetry and targets specified weak muscle groups to construct a custom 12-week biomechanic development plan.
+      </p>
+    </div>
+    <button id="btnGenerateRoutine" class="btn-primary" style="padding: 0.75rem 2rem; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-radius: var(--rad-sm);">
+      Generate Routine
+    </button>
+  </div>
+
+  <!-- Generated Routine Render Area -->
+  <div id="routineContainer" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.08); {% if not recommendation %}display: none;{% endif %}">
+    <h4 style="color: var(--c-accent-color); font-weight: 700; font-size: 1.1rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Your 12-Week Biomechanical Protocol</h4>
+    <div id="routineContent" class="t-muted" style="white-space: pre-line; line-height: 1.6; font-size: 0.95rem; background: rgba(0, 0, 0, 0.3); padding: 1.5rem; border-radius: var(--rad-sm); border: 1px solid rgba(255, 255, 255, 0.05);">
+      {% if recommendation %}
+        {% if recommendation.recommended_exercises.items %}
+          {% for day, routine in recommendation.recommended_exercises.items %}
+            <strong>{{ day|title }}:</strong> {{ routine }}
+          {% endfor %}
+        {% else %}
+          {{ recommendation.recommended_exercises }}
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Analytics Charts -->
+<div class="chart-grid animate-up">
+  <!-- Radar Chart (Muscle Volume) -->
+  <div class="chart-card">
+    <h3 class="t-h3" style="font-size: 1.15rem; margin-bottom: 1.5rem; color: #fff;">Muscle Group Volume Distribution</h3>
+    <div style="position: relative; height: 260px; width: 100%;">
+      <canvas id="muscleVolumeChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Line Chart (Training Progress Trend) -->
+  <div class="chart-card">
+    <h3 class="t-h3" style="font-size: 1.15rem; margin-bottom: 1.5rem; color: #fff;">Monthly Progress Trend</h3>
+    <div style="position: relative; height: 260px; width: 100%;">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Logs & Logging Panel -->
+<div class="log-section animate-up">
+  <!-- Recent Logs Table -->
+  <div class="surface-card" style="padding: 2rem;">
+    <h3 class="t-h3" style="font-size: 1.15rem; color: #fff; margin-bottom: 1rem;">Recent Training Logs</h3>
+    {% if recent_logs %}
+      <div style="overflow-x: auto;">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Exercise</th>
+              <th>Muscle Group</th>
+              <th>Sets x Reps</th>
+              <th>Weight</th>
+              <th>Volume</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in recent_logs %}
+              <tr>
+                <td style="font-weight: 700;">{{ log.exercise_name }}</td>
+                <td>
+                  <span class="tag-pill tag-{{ log.muscle_group|lower }}">{{ log.muscle_group }}</span>
+                </td>
+                <td>{{ log.sets }} × {{ log.reps }}</td>
+                <td>{{ log.weight }} kg</td>
+                <td style="color: var(--c-accent-color); font-weight: 700;">{{ log.total_volume|floatformat:1 }} kg</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 3rem 1rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 1rem;">📊</div>
+        <p class="t-muted">No training sessions logged yet. Complete a workout module or add a log manually to compile dashboard telemetry.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Manual Workout Logger Form -->
+  <div class="surface-card" style="padding: 2rem;">
+    <h3 class="t-h3" style="font-size: 1.15rem; color: #fff; margin-bottom: 1.5rem;">Manual Logger</h3>
+    <form method="post" style="display: flex; flex-direction: column; gap: 1.25rem;">
+      {% csrf_token %}
+      <div>
+        <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Exercise Name</label>
+        <input type="text" name="exercise_name" required placeholder="e.g. Bench Press" class="fittar-input" style="width: 100%;">
+      </div>
+
+      <div>
+        <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Target Muscle Group</label>
+        <select name="muscle_group" class="fittar-select" style="width: 100%;">
+          <option value="Chest">Chest</option>
+          <option value="Legs">Legs</option>
+          <option value="Biceps">Biceps</option>
+          <option value="Shoulders">Shoulders</option>
+          <option value="Back">Back</option>
+          <option value="General">Other / General</option>
+        </select>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+        <div>
+          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Sets</label>
+          <input type="number" name="sets" min="1" value="3" required class="fittar-input" style="width: 100%;">
+        </div>
+        <div>
+          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Reps</label>
+          <input type="number" name="reps" min="1" value="10" required class="fittar-input" style="width: 100%;">
+        </div>
+        <div>
+          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Weight (kg)</label>
+          <input type="number" step="0.5" name="weight" min="0" value="20" required class="fittar-input" style="width: 100%;">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" style="margin-top: 0.5rem; width: 100%; text-transform: uppercase; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.05em; padding: 0.75rem;">
+        Add Log Entry
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Chart Config for Muscle Group Volume Distribution (Radar/Polar-styled Bar Chart)
+  const muscleCtx = document.getElementById('muscleVolumeChart').getContext('2d');
+  const muscleLabels = {{ muscle_labels|safe }};
+  const muscleValues = {{ muscle_values|safe }};
+  
+  new Chart(muscleCtx, {
+    type: 'bar',
+    data: {
+      labels: muscleLabels,
+      datasets: [{
+        label: 'Volume (kg)',
+        data: muscleValues,
+        backgroundColor: 'rgba(0, 255, 102, 0.15)',
+        borderColor: '#00ff66',
+        borderWidth: 2,
+        borderRadius: 4,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: '#888', font: { family: 'inherit' } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#aaa', font: { family: 'inherit', weight: 'bold' } }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  // Chart Config for Monthly Progress Trend (Line Chart)
+  const trendCtx = document.getElementById('trendChart').getContext('2d');
+  const trendLabels = {{ trend_labels|safe }};
+  const trendValues = {{ trend_values|safe }};
+
+  new Chart(trendCtx, {
+    type: 'line',
+    data: {
+      labels: trendLabels,
+      datasets: [{
+        label: 'Total Volume',
+        data: trendValues,
+        fill: true,
+        backgroundColor: 'rgba(255, 204, 0, 0.05)',
+        borderColor: '#ffcc00',
+        borderWidth: 3,
+        tension: 0.4,
+        pointBackgroundColor: '#ffcc00',
+        pointBorderColor: '#111',
+        pointBorderWidth: 2,
+        pointRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: '#888' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#aaa' }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  // AJAX Trigger for AI Adaptive Routine Generator
+  const btnGen = document.getElementById('btnGenerateRoutine');
+  const routineContainer = document.getElementById('routineContainer');
+  const routineContent = document.getElementById('routineContent');
+
+  btnGen.addEventListener('click', function() {
+    btnGen.disabled = true;
+    btnGen.textContent = 'Generating Protocol...';
+    
+    fetch('/api/generate-recommendation/')
+      .then(response => response.json())
+      .then(data => {
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Routine';
+        
+        if (data.status === 'success') {
+          routineContainer.style.display = 'block';
+          
+          let contentHtml = '';
+          if (typeof data.routine === 'object') {
+            for (const [day, routine] of Object.entries(data.routine)) {
+              contentHtml += `<strong>${day.toUpperCase()}:</strong> ${routine}\n`;
+            }
+          } else {
+            contentHtml = data.routine;
+          }
+          routineContent.innerHTML = contentHtml;
+        } else {
+          alert('System Info: ' + data.message);
+        }
+      })
+      .catch(err => {
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Routine';
+        console.error('AI Routine Error:', err);
+        alert('Error communicating with AI engine.');
+      });
+  });
+</script>
+{% endblock %}

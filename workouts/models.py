@@ -192,3 +192,22 @@ class PostureAnalysis(models.Model):
     def __str__(self):
         return f"{self.user.username}'s {self.exercise_name} Analysis on {self.analysis_date}"
 
+
+class WorkoutLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    exercise_name = models.CharField(max_length=100)
+    sets = models.PositiveIntegerField(default=1)
+    reps = models.PositiveIntegerField(default=0)
+    weight = models.FloatField(default=0.0, help_text="Weight in kg")
+    date = models.DateField(auto_now_add=True)
+    duration_minutes = models.PositiveIntegerField(default=10)
+    muscle_group = models.CharField(max_length=50, help_text="Legs, Chest, Biceps, Shoulders, Back, etc.")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.exercise_name} on {self.date}"
+
+    @property
+    def total_volume(self):
+        return self.sets * self.reps * self.weight
+
+

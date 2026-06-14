@@ -23,7 +23,7 @@ except ImportError as e:
     REP_COUNTER_AVAILABLE = False
     print(f"RepCounter not available: {e}")
     RepCounter = None
-from .models import UserProfile, ChatSession, ChatMessage, MealLog, FoodItem, DailySummary
+from .models import UserProfile, ChatSession, ChatMessage, MealLog, FoodItem, DailySummary, PostureAnalysis, WorkoutLog
 from .forms import UserProfileForm, ChatMessageForm
 from .fitness_chatbot import FitnessChatbot
 import json
@@ -1305,7 +1305,287 @@ def save_posture_analysis(request):
                 feedback=feedback_str,
                 improvement_tips=improvement_tips
             )
+
+            # Normalize exercise name for muscle group mapping
+            exercise_slug = exercise_name.lower().strip().replace(" ", "_")
+            
+            # Consistent exercise-to-muscle group mapping
+            EXERCISE_MUSCLE_MAPPING = {
+                'squats': 'Legs',
+                'pushups': 'Chest',
+                'bicep_curls': 'Biceps',
+                'hammer_curls': 'Biceps',
+                'side_raises': 'Shoulders'
+            }
+            muscle_group = EXERCISE_MUSCLE_MAPPING.get(exercise_slug, 'General')
+            
+            # Default weight assumptions based on exercise type (0.0 for bodyweight)
+            default_weight = 0.0
+            if exercise_slug in ['bicep_curls', 'hammer_curls']:
+                default_weight = 10.0
+            elif exercise_slug == 'side_raises':
+                default_weight = 5.0
+
+            # Auto-log completed session to WorkoutLog
+            WorkoutLog.objects.create(
+                user=request.user,
+                exercise_name=exercise_name.replace("_", " ").title(),
+                sets=1,
+                reps=rep_count,
+                weight=default_weight,
+                muscle_group=muscle_group,
+                duration_minutes=10
+            )
+
             return JsonResponse({'status': 'success', 'id': analysis.id})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
+
+
+import datetime
+from django.db.models import Avg, Sum
+
+@login_required
+def analytics_dashboard(request):
+    """Fitness Analytics Dashboard displaying logs, streaks, and muscle volume."""
+    user = request.user
+    
+    if request.method == 'POST':
+        exercise_name = request.POST.get('exercise_name', '').strip()
+        sets = int(request.POST.get('sets', 1))
+        reps = int(request.POST.get('reps', 0))
+        weight = float(request.POST.get('weight', 0.0))
+        muscle_group = request.POST.get('muscle_group', 'General').strip()
+        
+        if exercise_name and reps > 0:
+            WorkoutLog.objects.create(
+                user=user,
+                exercise_name=exercise_name,
+                sets=sets,
+                reps=reps,
+                weight=weight,
+                muscle_group=muscle_group,
+                duration_minutes=sets * 2
+            )
+            messages.success(request, f"Logged {exercise_name} successfully!")
+            return redirect('analytics')
+            
+    # Calculate Streak
+    logs_dates = WorkoutLog.objects.filter(user=user).values_list('date', flat=True).distinct().order_by('-date')
+    streak = 0
+    if logs_dates:
+        today = datetime.date.today()
+        yesterday = today - datetime.timedelta(days=1)
+        most_recent = logs_dates[0]
+        if most_recent == today or most_recent == yesterday:
+            streak = 0
+            expected_date = most_recent
+            for log_date in logs_dates:
+                if log_date == expected_date:
+                    streak += 1
+                    expected_date -= datetime.timedelta(days=1)
+                elif log_date > expected_date:
+                    continue
+                else:
+                    break
+
+    # Calculations for Volume by Muscle Group
+    logs = WorkoutLog.objects.filter(user=user)
+    total_workouts = logs.count()
+    total_volume_lifted = sum(log.total_volume for log in logs)
+    total_active_minutes = logs.aggregate(Sum('duration_minutes'))['duration_minutes__sum'] or 0
+    
+    # Posture Analytics Average
+    avg_posture = PostureAnalysis.objects.filter(user=user).aggregate(Avg('posture_score'))['posture_score__avg'] or 0.0
+    avg_posture = round(avg_posture, 1)
+
+    # Muscle Volume Breakdown for Radar Chart
+    muscle_groups = ['Legs', 'Chest', 'Biceps', 'Shoulders', 'Back']
+    muscle_volume_data = {mg: 0.0 for mg in muscle_groups}
+    for log in logs:
+        mg = log.muscle_group
+        if mg not in muscle_volume_data:
+            muscle_volume_data[mg] = 0.0
+        muscle_volume_data[mg] += log.total_volume
+
+    # Monthly Progress Trend for Line Chart (Last 6 Months)
+    six_months_ago = datetime.date.today() - datetime.timedelta(days=180)
+    recent_logs = WorkoutLog.objects.filter(user=user, date__gte=six_months_ago).order_by('date')
+    
+    monthly_volume_data = {}
+    for log in recent_logs:
+        month_str = log.date.strftime('%b')
+        monthly_volume_data[month_str] = monthly_volume_data.get(month_str, 0.0) + log.total_volume
+
+    # Ensure last 6 months are present in order
+    ordered_months = []
+    current_date = datetime.date.today()
+    for i in range(5, -1, -1):
+        check_date = current_date - datetime.timedelta(days=i*30)
+        ordered_months.append(check_date.strftime('%b'))
+
+    ordered_monthly_values = [round(monthly_volume_data.get(m, 0.0), 1) for m in ordered_months]
+
+    # Fetch last 5 recent workout logs for history table
+    recent_logs_list = logs.order_by('-date')[:5]
+
+    # Fetch latest WorkoutRecommendation if it exists
+    from .models import WorkoutRecommendation
+    recommendation = WorkoutRecommendation.objects.filter(user_profile__user=user).order_by('-created_at').first()
+
+    context = {
+        'streak': streak,
+        'total_workouts': total_workouts,
+        'total_volume_lifted': round(total_volume_lifted, 1),
+        'total_active_minutes': total_active_minutes,
+        'avg_posture': avg_posture,
+        'recent_logs': recent_logs_list,
+        'recommendation': recommendation,
+        # JSON data for charts
+        'muscle_labels': json.dumps(list(muscle_volume_data.keys())),
+        'muscle_values': json.dumps(list(muscle_volume_data.values())),
+        'trend_labels': json.dumps(ordered_months),
+        'trend_values': json.dumps(ordered_monthly_values),
+    }
+    
+    return render(request, 'analytics.html', context)
+
+
+@login_required
+def generate_adaptive_workout(request):
+    """Generates an AI adaptive workout recommendation based on weak muscle groups and goal."""
+    user = request.user
+    
+    # 1. Fetch or create a default user profile to ensure database resilience
+    try:
+        user_profile = UserProfile.objects.get(user=user)
+    except UserProfile.DoesNotExist:
+        user_profile = UserProfile.objects.create(
+            user=user,
+            age=25,
+            height=175.0,
+            weight=70.0,
+            gender='M',
+            fitness_level='intermediate',
+            primary_goal='muscle_gain',
+            available_time=60,
+            weak_muscles='Biceps,Legs'
+        )
+
+    # 2. Gather training volume history from WorkoutLog
+    logs = WorkoutLog.objects.filter(user=user)
+    muscle_volume = {}
+    for log in logs:
+        muscle_volume[log.muscle_group] = muscle_volume.get(log.muscle_group, 0.0) + log.total_volume
+    volume_summary_str = ", ".join([f"{k}: {v:.1f}kg" for k, v in muscle_volume.items()]) or "No training volume logged yet."
+
+    # 3. Try to call Gemini 1.5 Flash Cloud API
+    api_key = os.getenv("GEMINI_API_KEY")
+    ai_success = False
+    recommendation_data = None
+
+    if api_key:
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        prompt = f"""
+        You are a professional clinical fitness trainer (OS Architect).
+        Design a personalized 12-week workout recommendation protocol for a user with the following profile:
+        - Age: {user_profile.age}
+        - Gender: {user_profile.get_gender_display()}
+        - Fitness Level: {user_profile.get_fitness_level_display()}
+        - Primary Goal: {user_profile.get_primary_goal_display()}
+        - Weak Muscle Groups: {user_profile.weak_muscles or 'None specified'}
+        - Available Time: {user_profile.available_time} minutes per session
+        - Recent training volume: {volume_summary_str}
+
+        Provide a targeted routine specifically addressing the weak muscle groups with correct biomechanics.
+        Provide ONLY a valid JSON response with this exact schema:
+        {{
+            "difficulty_level": "Beginner | Intermediate | Advanced",
+            "estimated_duration": {user_profile.available_time or 60},
+            "focus_areas": ["{user_profile.weak_muscles.split(',')[0] if user_profile.weak_muscles else 'General'}"],
+            "recommended_exercises": {{
+                "Day 1": "list of exercises with sets and reps",
+                "Day 2": "list of exercises with sets and reps",
+                "Day 3": "list of exercises with sets and reps"
+            }}
+        }}
+        Do not include any other text or markdown wrappers like ```json.
+        """
+        
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
+        try:
+            response = requests.post(f"{url}?key={api_key}", headers=headers, json=payload, timeout=12)
+            if response.status_code == 200:
+                resp_json = response.json()
+                ai_text = resp_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                
+                # Clean JSON markdown formatting if present
+                if ai_text.startswith('```json'):
+                    ai_text = ai_text[7:-3].strip()
+                elif ai_text.startswith('```'):
+                    ai_text = ai_text[3:-3].strip()
+                
+                recommendation_data = json.loads(ai_text)
+                ai_success = True
+        except Exception as e:
+            print(f"Gemini API error in workout recommendations: {e}")
+
+    # 4. Fallback to local high-fidelity offline protocol builder if API fails
+    if not ai_success:
+        weak_list = [m.strip().title() for m in user_profile.weak_muscles.split(',')] if user_profile.weak_muscles else ['General']
+        recommended = {}
+        if any(m in ['Legs', 'Quadriceps', 'Glutes', 'Hamstrings'] for m in weak_list):
+            recommended = {
+                "Day 1 (Leg Strength Focus)": "Barbell Squats (4 sets × 8 reps), Romanian Deadlifts (3 sets × 10 reps), Calf Raises (4 sets × 15 reps). Focus on knee tracking over toes.",
+                "Day 2 (Upper Body Intensity)": "Push-ups (4 sets × 12 reps), Bicep Curls (3 sets × 12 reps), Lateral Raises (3 sets × 15 reps).",
+                "Day 3 (Core & Recovery)": "Planks (3 sets × 60s), Hanging Leg Raises (3 sets × 12 reps), dynamic stretching."
+            }
+        elif any(m in ['Biceps', 'Arms', 'Forearms'] for m in weak_list):
+            recommended = {
+                "Day 1 (Arm Development Focus)": "Bicep Curls (4 sets × 12 reps), Hammer Curls (3 sets × 12 reps), Tricep Pushdowns (4 sets × 10 reps). Maintain locked elbows.",
+                "Day 2 (Lower Body Foundation)": "Squats (4 sets × 10 reps), Dumbbell Lunges (3 sets × 12 reps per leg), Calf Raises (3 sets × 15 reps).",
+                "Day 3 (Core & Rest)": "Planks (3 sets × 60s), stretching, dynamic mobility routines."
+            }
+        else:
+            recommended = {
+                "Day 1 (Push Day)": "Push-ups (4 sets × 12 reps), Overhead Press (3 sets × 10 reps), Lateral Raises (3 sets × 12 reps).",
+                "Day 2 (Pull/Legs Day)": "Dumbbell Rows (4 sets × 10 reps), Squats (4 sets × 12 reps), Bicep Curls (3 sets × 12 reps).",
+                "Day 3 (Active Recovery)": "20 minutes light jogging + dynamic stretching and core stability planks."
+            }
+            
+        recommendation_data = {
+            "difficulty_level": user_profile.fitness_level.title(),
+            "estimated_duration": user_profile.available_time or 60,
+            "focus_areas": weak_list[:2],
+            "recommended_exercises": recommended
+        }
+
+    # 5. Persist the recommendation to the database
+    from .models import WorkoutRecommendation
+    
+    # Check if there is an existing recommendation, otherwise create a new one
+    rec_obj = WorkoutRecommendation.objects.create(
+        user_profile=user_profile,
+        recommended_exercises=recommendation_data.get('recommended_exercises', {}),
+        difficulty_level=recommendation_data.get('difficulty_level', 'Intermediate'),
+        estimated_duration=recommendation_data.get('estimated_duration', 60),
+        focus_areas=recommendation_data.get('focus_areas', [])
+    )
+    
+    return JsonResponse({
+        'status': 'success',
+        'routine': rec_obj.recommended_exercises,
+        'difficulty': rec_obj.difficulty_level,
+        'duration': rec_obj.estimated_duration,
+        'focus': rec_obj.focus_areas
+    })
+
+
+

@@ -211,3 +211,18 @@ class WorkoutLog(models.Model):
         return self.sets * self.reps * self.weight
 
 
+class FoodPreference(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    food_query = models.CharField(max_length=100)
+    preferred_food_name = models.CharField(max_length=200)
+    preferred_food_data = models.JSONField()
+    log_count = models.PositiveIntegerField(default=1)
+    last_used = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'food_query')
+
+    def __str__(self):
+        return f"{self.user.username} preference for {self.food_query} -> {self.preferred_food_name} (x{self.log_count})"
+
+

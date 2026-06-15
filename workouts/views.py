@@ -23,7 +23,7 @@ except ImportError as e:
     REP_COUNTER_AVAILABLE = False
     print(f"RepCounter not available: {e}")
     RepCounter = None
-from .models import UserProfile, ChatSession, ChatMessage, MealLog, FoodItem, DailySummary, PostureAnalysis, WorkoutLog
+from .models import UserProfile, ChatSession, ChatMessage, MealLog, FoodItem, DailySummary, PostureAnalysis, WorkoutLog, FoodPreference
 from .forms import UserProfileForm, ChatMessageForm
 from .fitness_chatbot import FitnessChatbot
 import json
@@ -638,32 +638,130 @@ NUTRITION_DATABASE = {
 }
 
 def smart_food_lookup(food_name, quantity, unit):
-    """Smart food lookup with fuzzy matching like ChatGPT"""
+    """
+    Enhanced food lookup with the following fallback chain:
+    Indian staples dict (rapidfuzz >= 80) -> NUTRITION_DATABASE -> USDA API -> Gemini -> Hardcoded defaults.
+    Always returns values normalized per 100g, and source name.
+    """
     food_lower = food_name.lower().strip()
-    
-    # Direct match
+    multiplier = get_quantity_multiplier(quantity, unit)
+    if multiplier <= 0:
+        multiplier = 1.0
+        
+    # 1. Check Indian staples dictionary first using fuzzy matching (rapidfuzz)
+    try:
+        from .indian_foods import INDIAN_FOODS_DB
+        from rapidfuzz import process, fuzz
+        choices = list(INDIAN_FOODS_DB.keys())
+        match_result = process.extractOne(food_lower, choices, scorer=fuzz.token_sort_ratio)
+        if match_result:
+            matched_name, score, index = match_result
+            if score >= 80:
+                print(f"DEBUG: Indian Foods DB match found: {matched_name} (score: {score})")
+                return INDIAN_FOODS_DB[matched_name], "Indian Foods DB"
+    except Exception as e:
+        print(f"Error in Indian Foods DB fuzzy match: {e}")
+
+    # 2. Check original NUTRITION_DATABASE
+    # Exact match
     if food_lower in NUTRITION_DATABASE:
         return NUTRITION_DATABASE[food_lower], "Database"
-    
-    # Fuzzy matching - find partial matches
+    # Fuzzy match
     for key, data in NUTRITION_DATABASE.items():
-        # Check if any word in the food name matches
         food_words = food_lower.split()
-        key_words = key.split()
-        
-        # If any significant word matches
         if any(word in key for word in food_words if len(word) > 3) or \
-           any(word in food_lower for word in key_words if len(word) > 3):
+           any(word in food_lower for word in key.split() if len(word) > 3):
             return data, "Database"
-    
-    # Special cases
+            
     if 'egg' in food_lower:
         if 'white' in food_lower:
             return NUTRITION_DATABASE['egg white'], "Database"
         else:
             return NUTRITION_DATABASE['whole egg'], "Database"
-    
-    return None, "AI"
+
+    # 3. Query USDA FoodData Central API
+    usda_key = os.getenv("USDA_API_KEY")
+    if usda_key:
+        print(f"DEBUG: Querying USDA API for: {food_lower}")
+        url = "https://api.nal.usda.gov/fdc/v1/foods/search"
+        params = {
+            'query': food_lower,
+            'api_key': usda_key,
+            'pageSize': 3
+        }
+        try:
+            resp = requests.get(url, params=params, timeout=8)
+            if resp.status_code == 200:
+                resp_data = resp.json()
+                foods = resp_data.get('foods', [])
+                if foods:
+                    first_food = foods[0]
+                    nutrients = first_food.get('foodNutrients', [])
+                    
+                    id_mapping = {
+                        1008: 'calories',
+                        1003: 'protein',
+                        1005: 'carbs',
+                        1004: 'fat',
+                        1079: 'fiber',
+                        1093: 'sodium'
+                    }
+                    
+                    usda_per_100g = {
+                        'calories': 0.0,
+                        'protein': 0.0,
+                        'carbs': 0.0,
+                        'fat': 0.0,
+                        'fiber': 0.0,
+                        'sodium': 0.0
+                    }
+                    
+                    for nut in nutrients:
+                        n_id = nut.get('nutrientId')
+                        if n_id in id_mapping:
+                            key = id_mapping[n_id]
+                            val = float(nut.get('value', 0))
+                            if n_id == 1093:
+                                # Sodium is in mg in USDA, convert to grams
+                                usda_per_100g[key] = val / 1000.0
+                            else:
+                                usda_per_100g[key] = val
+                                
+                    print(f"DEBUG: USDA match found: {first_food.get('description')} (Cals per 100g: {usda_per_100g['calories']})")
+                    return usda_per_100g, "USDA API"
+        except Exception as e:
+            print(f"USDA API error: {e}")
+
+    # 4. Query Gemini API
+    if GEMINI_API_KEY:
+        print(f"DEBUG: Querying Gemini for: {food_lower}")
+        try:
+            gemini_data = query_gemini_nutrition(food_name, quantity, unit)
+            # gemini_data is already scaled to quantity. Convert back to per-100g base for scaling consistency
+            usda_per_100g = {
+                'calories': round(float(gemini_data.get('calories', 0)) / multiplier, 1),
+                'protein': round(float(gemini_data.get('protein', 0)) / multiplier, 1),
+                'carbs': round(float(gemini_data.get('carbs', 0)) / multiplier, 1),
+                'fat': round(float(gemini_data.get('fat', 0)) / multiplier, 1),
+                'fiber': round(float(gemini_data.get('fiber', 0)) / multiplier, 1),
+                'sodium': round(float(gemini_data.get('sodium', 0)) / multiplier, 3)
+            }
+            return usda_per_100g, "Gemini AI"
+        except Exception as e:
+            print(f"Gemini API error during fallback: {e}")
+
+    # 5. Hardcoded defaults (400 kcal, 20g protein, 45g carbs, 15g fat, 5g fiber per 100g)
+    print("DEBUG: Using hardcoded fallback defaults")
+    defaults_per_100g = {
+        'calories': 400.0,
+        'protein': 20.0,
+        'carbs': 45.0,
+        'fat': 15.0,
+        'fiber': 5.0,
+        'sodium': 0.0
+    }
+    return defaults_per_100g, "Hardcoded Defaults"
+
 
 def query_gemini_for_foods(text):
     """ChatGPT-style nutrition analysis using Gemini API"""
@@ -725,10 +823,10 @@ Be as accurate as ChatGPT with nutrition data!"""
                         print(f"DEBUG: Food={food_name}, Quantity={quantity}, Unit={unit}")
                         print(f"DEBUG: Database lookup result - Source: {source}")
                         
-                        if db_data and source == "Database":
-                            # Use our corrected database values - ALWAYS prioritize this!
+                        if db_data:
+                            # Use our corrected database or API values from our structured fallback chain
                             multiplier = get_quantity_multiplier(quantity, unit)
-                            print(f"DEBUG: Using DATABASE - Multiplier={multiplier}, Final calories={round(db_data['calories'] * multiplier, 1)}")
+                            print(f"DEBUG: Using {source} - Multiplier={multiplier}, Final calories={round(db_data['calories'] * multiplier, 1)}")
                             
                             enhanced_food = {
                                 'food': food.get('food'),
@@ -739,11 +837,11 @@ Be as accurate as ChatGPT with nutrition data!"""
                                 'carbs': round(db_data['carbs'] * multiplier, 1),
                                 'fat': round(db_data['fat'] * multiplier, 1),
                                 'fiber': round(db_data['fiber'] * multiplier, 1),
-                                'sugar': round(db_data['sugar'] * multiplier, 1),
-                                'sodium': round(db_data['sodium'] * multiplier, 3),
-                                'source': 'Database'
+                                'sugar': round(db_data.get('sugar', 0) * multiplier, 1),
+                                'sodium': round(db_data.get('sodium', 0) * multiplier, 3),
+                                'source': source
                             }
-                            print(f"DEBUG: Database result: {enhanced_food['food']} -> {enhanced_food['calories']} cal")
+                            print(f"DEBUG: {source} result: {enhanced_food['food']} -> {enhanced_food['calories']} cal")
                         else:
                             # Use AI estimate only if database lookup fails
                             print(f"DEBUG: Using AI estimate for {food.get('food')}")
@@ -847,9 +945,9 @@ def recalculate_meals(request):
         updated_count = 0
         for meal in meals:
             # Recalculate nutrition using current database
-            db_data, source = smart_food_lookup(meal.food_name, meal.quantity, meal.unit)
+            db_data, source = smart_food_lookup(meal.food_item.name, meal.quantity, meal.unit)
             
-            if db_data and source == "Database":
+            if db_data:
                 # Recalculate with correct values
                 multiplier = get_quantity_multiplier(meal.quantity, meal.unit)
                 
@@ -858,13 +956,13 @@ def recalculate_meals(request):
                 meal.carbs = round(db_data['carbs'] * multiplier, 1)
                 meal.fat = round(db_data['fat'] * multiplier, 1)
                 meal.fiber = round(db_data['fiber'] * multiplier, 1)
-                meal.sugar = round(db_data['sugar'] * multiplier, 1)
-                meal.sodium = round(db_data['sodium'] * multiplier, 3)
-                meal.source = 'Database (Updated)'
+                meal.sugar = round(db_data.get('sugar', 0) * multiplier, 1)
+                meal.sodium = round(db_data.get('sodium', 0) * multiplier, 3)
+                meal.source = f'{source} (Updated)'
                 
                 meal.save()
                 updated_count += 1
-                print(f"DEBUG: Updated {meal.food_name} - {meal.quantity}{meal.unit} -> {meal.calories} calories")
+                print(f"DEBUG: Updated {meal.food_item.name} - {meal.quantity}{meal.unit} -> {meal.calories} calories")
         
         return JsonResponse({
             "success": True,
@@ -876,23 +974,192 @@ def recalculate_meals(request):
         return JsonResponse({"error": f"Error recalculating meals: {str(e)}"}, status=500)
 
 
+COMPOUND_FOODS = {
+    "chicken breast": "chicken",
+    "brown rice": "rice",
+    "white rice": "rice",
+    "whole egg": "egg",
+    "rolled oats": "oats",
+    "sweet potato": "potato",
+}
+
+def normalize_query(food_name):
+    lower = food_name.lower().strip()
+    if lower in COMPOUND_FOODS:
+        return COMPOUND_FOODS[lower]
+    words = lower.split()
+    return words[-1] if words else lower
+
+def get_top_candidates(food_query, quantity, unit):
+    candidates = []
+    food_lower = food_query.lower().strip()
+    
+    # 1. Check Indian Foods DB fuzzy matching
+    try:
+        from .indian_foods import INDIAN_FOODS_DB
+        from rapidfuzz import process, fuzz
+        choices = list(INDIAN_FOODS_DB.keys())
+        matches = process.extract(food_lower, choices, scorer=fuzz.token_sort_ratio, limit=3)
+        for matched_name, score, index in matches:
+            if score >= 60:
+                candidates.append({
+                    'name': matched_name.title(),
+                    'data': INDIAN_FOODS_DB[matched_name],
+                    'source': 'Indian Foods DB'
+                })
+    except Exception as e:
+        print(f"Error in Indian Foods candidate extraction: {e}")
+
+    # 2. Check NUTRITION_DATABASE exact or fuzzy
+    for key, data in NUTRITION_DATABASE.items():
+        if food_lower in key or key in food_lower:
+            if not any(c['name'].lower() == key.lower() for c in candidates):
+                candidates.append({
+                    'name': key.title(),
+                    'data': data,
+                    'source': 'Database'
+                })
+
+    # 3. Query USDA API for brands/alternatives
+    usda_key = os.getenv("USDA_API_KEY")
+    if usda_key and len(candidates) < 3:
+        url = "https://api.nal.usda.gov/fdc/v1/foods/search"
+        params = {
+            'query': food_lower,
+            'api_key': usda_key,
+            'pageSize': 5
+        }
+        try:
+            resp = requests.get(url, params=params, timeout=5)
+            if resp.status_code == 200:
+                resp_data = resp.json()
+                for first_food in resp_data.get('foods', []):
+                    desc = first_food.get('description', '')
+                    if any(c['name'].lower() == desc.lower() for c in candidates):
+                        continue
+                    
+                    nutrients = first_food.get('foodNutrients', [])
+                    id_mapping = {
+                        1008: 'calories',
+                        1003: 'protein',
+                        1005: 'carbs',
+                        1004: 'fat',
+                        1079: 'fiber',
+                        1093: 'sodium'
+                    }
+                    usda_per_100g = {'calories': 0.0, 'protein': 0.0, 'carbs': 0.0, 'fat': 0.0, 'fiber': 0.0, 'sodium': 0.0}
+                    for nut in nutrients:
+                        n_id = nut.get('nutrientId')
+                        if n_id in id_mapping:
+                            key = id_mapping[n_id]
+                            val = float(nut.get('value', 0))
+                            if n_id == 1093:
+                                usda_per_100g[key] = val / 1000.0
+                            else:
+                                usda_per_100g[key] = val
+                    
+                    candidates.append({
+                        'name': desc.title(),
+                        'data': usda_per_100g,
+                        'source': 'USDA API'
+                    })
+                    if len(candidates) >= 5:
+                        break
+        except Exception as e:
+            print(f"USDA candidate extraction error: {e}")
+
+    # If empty, run fallback smart_food_lookup
+    if not candidates:
+        db_data, source = smart_food_lookup(food_query, quantity, unit)
+        candidates.append({
+            'name': food_query.title(),
+            'data': db_data,
+            'source': source
+        })
+
+    # Fill to exactly 3 if needed
+    if len(candidates) < 3:
+        generic_data = candidates[0]['data']
+        source = candidates[0]['source']
+        name = candidates[0]['name']
+        candidates.append({
+            'name': f"Organic {name}",
+            'data': generic_data,
+            'source': source
+        })
+        candidates.append({
+            'name': f"Generic {name}",
+            'data': generic_data,
+            'source': source
+        })
+
+    # Limit to top 3 and calculate scaled calories/macros
+    top_3 = candidates[:3]
+    multiplier = get_quantity_multiplier(quantity, unit)
+    if multiplier <= 0:
+        multiplier = 1.0
+        
+    formatted = []
+    for c in top_3:
+        data = c['data']
+        formatted.append({
+            'name': c['name'],
+            'source': c['source'],
+            'calories': round(data['calories'] * multiplier, 1),
+            'protein': round(data['protein'] * multiplier, 1),
+            'carbs': round(data['carbs'] * multiplier, 1),
+            'fat': round(data['fat'] * multiplier, 1),
+            'fiber': round(data.get('fiber', 0) * multiplier, 1),
+            'sodium': round(data.get('sodium', 0) * multiplier, 3),
+        })
+    return formatted
+
+
+def update_daily_summary(user, date):
+    from django.db.models import Sum
+    from decimal import Decimal
+    
+    logs = MealLog.objects.filter(user=user, date=date)
+    
+    total_cal = sum(log.calories for log in logs)
+    total_pro = sum(log.protein for log in logs)
+    total_carb = sum(log.carbs for log in logs)
+    total_fat = sum(log.fat for log in logs)
+    total_fib = sum(log.fiber for log in logs)
+    total_sug = sum(log.sugar for log in logs)
+    total_sod = sum(log.sodium for log in logs)
+    
+    summary, created = DailySummary.objects.get_or_create(
+        user=user,
+        date=date
+    )
+    summary.total_calories = int(round(total_cal))
+    summary.total_protein = Decimal(str(round(total_pro, 2)))
+    summary.total_carbohydrates = Decimal(str(round(total_carb, 2)))
+    summary.total_fats = Decimal(str(round(total_fat, 2)))
+    summary.total_fiber = Decimal(str(round(total_fib, 2)))
+    summary.total_sugar = Decimal(str(round(total_sug, 2)))
+    summary.total_sodium = Decimal(str(round(total_sod, 3)))
+    summary.save()
+
+
 @csrf_exempt
 @login_required
 def log_meal_from_voice(request):
-    """Simple but accurate nutrition tracking - like ChatGPT (No API keys needed!)"""
+    """Simple but accurate nutrition tracking with adaptive food preferences"""
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=400)
     
     try:
         data = json.loads(request.body)
-        transcribed_text = data.get("text", "")
+        transcribed_text = data.get("text") or data.get("transcript", "")
     except Exception:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     
     if not transcribed_text:
         return JsonResponse({"error": "No transcribed text provided"}, status=400)
 
-    # Parse and get nutrition like ChatGPT
+    # Parse food item candidates/names from raw speech text
     try:
         foods = query_gemini_for_foods(transcribed_text)
     except Exception as e:
@@ -901,69 +1168,101 @@ def log_meal_from_voice(request):
     if not isinstance(foods, list) or not foods:
         return JsonResponse({"error": "Could not understand the food. Try: '2 eggs and 100g oats'"}, status=400)
 
-    # Save each food to database
     results = []
-    for food_obj in foods:
+    today = timezone.now().date()
+
+    for idx, food_obj in enumerate(foods):
         food = food_obj.get("food")
         quantity = float(food_obj.get("quantity", 1))
         unit = food_obj.get("unit", "")
-        calories = float(food_obj.get("calories", 0))
-        protein = float(food_obj.get("protein", 0))
-        carbs = float(food_obj.get("carbs", 0))
-        fat = float(food_obj.get("fat", 0))
-        fiber = float(food_obj.get("fiber", 0))
-        sugar = float(food_obj.get("sugar", 0))
-        sodium = float(food_obj.get("sodium", 0))
-        source = food_obj.get("source", "AI")
         
         if not food:
             continue
 
-        # Save or update FoodItem
-        food_item, _ = FoodItem.objects.get_or_create(
-            name=food,
-            defaults={
-                "calories_per_100g": calories,
+        normalized = normalize_query(food)
+        pref = FoodPreference.objects.filter(user=request.user, food_query=normalized).first()
+
+        if pref and pref.log_count >= 3:
+            # Auto-log mode!
+            # Use preferred_food_data scaled to spoken quantity
+            multiplier = get_quantity_multiplier(quantity, unit)
+            if multiplier <= 0:
+                multiplier = 1.0
+
+            calories = round(pref.preferred_food_data['calories'] * multiplier, 1)
+            protein = round(pref.preferred_food_data['protein'] * multiplier, 1)
+            carbs = round(pref.preferred_food_data['carbs'] * multiplier, 1)
+            fat = round(pref.preferred_food_data['fat'] * multiplier, 1)
+            fiber = round(pref.preferred_food_data.get('fiber', 0) * multiplier, 1)
+            sodium = round(pref.preferred_food_data.get('sodium', 0) * multiplier, 3)
+
+            # Find or create FoodItem
+            food_item, _ = FoodItem.objects.get_or_create(
+                name=pref.preferred_food_name.lower().strip(),
+                defaults={
+                    "calories_per_100g": pref.preferred_food_data['calories'],
+                    "protein": pref.preferred_food_data['protein'],
+                    "carbs": pref.preferred_food_data['carbs'],
+                    "fat": pref.preferred_food_data['fat'],
+                    "fiber": pref.preferred_food_data.get('fiber', 0),
+                    "sodium": pref.preferred_food_data.get('sodium', 0),
+                }
+            )
+
+            # Save MealLog
+            meal = MealLog.objects.create(
+                user=request.user,
+                food_item=food_item,
+                quantity=quantity,
+                unit=unit,
+                calories=calories,
+                protein=protein,
+                carbs=carbs,
+                fat=fat,
+                fiber=fiber,
+                sodium=sodium,
+                source='Preferred',
+                date=today
+            )
+
+            # Update DailySummary
+            update_daily_summary(request.user, today)
+
+            # Increment log count / last used
+            pref.log_count += 1
+            pref.save()
+
+            results.append({
+                "id": meal.id,
+                "food": pref.preferred_food_name,
+                "quantity": quantity,
+                "unit": unit,
+                "calories": calories,
                 "protein": protein,
                 "carbs": carbs,
                 "fat": fat,
                 "fiber": fiber,
-                "sugar": sugar,
                 "sodium": sodium,
-            }
-        )
-        
-        # Update with latest data
-        food_item.calories_per_100g = calories
-        food_item.protein = protein
-        food_item.carbs = carbs
-        food_item.fat = fat
-        food_item.fiber = fiber
-        food_item.sugar = sugar
-        food_item.sodium = sodium
-        food_item.save()
+            })
+        else:
+            # Picker mode (needs confirmation)!
+            # Run fallback chain to get top 3 candidates
+            candidates = get_top_candidates(food, quantity, unit)
+            
+            preferred_name = pref.preferred_food_name if pref else candidates[0]['name']
 
-        # Save MealLog
-        MealLog.objects.create(
-            user=request.user,
-            food_item=food_item,
-            quantity=quantity,
-            unit=unit,
-            calories=calories,
-            protein=protein,
-            carbs=carbs,
-            fat=fat,
-            fiber=fiber,
-            sugar=sugar,
-            sodium=sodium,
-            source=source,
-            date=timezone.now().date()
-        )
-        
-        results.append(food_obj)
+            return JsonResponse({
+                "success": True,
+                "mode": "picker",
+                "food_query": normalized,
+                "original_query": food,
+                "quantity": quantity,
+                "unit": unit,
+                "candidates": candidates,
+                "preferred": preferred_name
+            })
 
-    # Get today's totals
-    today = timezone.now().date()
+    # Get today's totals (if we successfully auto-logged everything)
     logs = MealLog.objects.filter(user=request.user, date=today)
     total_calories = sum(log.calories for log in logs)
     total_protein = sum(log.protein for log in logs)
@@ -973,7 +1272,9 @@ def log_meal_from_voice(request):
     total_sugar = sum(log.sugar for log in logs)
     total_sodium = sum(log.sodium for log in logs)
 
-    return JsonResponse({
+    response_data = {
+        "success": True,
+        "mode": "auto",
         "logged": results,
         "date": str(today),
         "total_calories": total_calories,
@@ -983,7 +1284,146 @@ def log_meal_from_voice(request):
         "total_fiber": total_fiber,
         "total_sugar": total_sugar,
         "total_sodium": total_sodium,
-    })
+    }
+    if len(results) == 1:
+        response_data["meal_id"] = results[0]["id"]
+        
+    return JsonResponse(response_data)
+
+
+@csrf_exempt
+@login_required
+def confirm_meal(request):
+    """Confirm and log picker meal choices, updating daily summary and food preferences"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        food_query = data.get("food_query", "").lower().strip()
+        chosen_food_name = data.get("chosen_food_name", "").strip()
+        chosen_food_data = data.get("chosen_food_data", {})
+        quantity = float(data.get("quantity", 100))
+        unit = data.get("unit", "g")
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+    if not chosen_food_name or not chosen_food_data:
+        return JsonResponse({"error": "Missing selection data"}, status=400)
+        
+    try:
+        # Calculate base values per 100g base for preference scaling
+        multiplier = get_quantity_multiplier(quantity, unit)
+        if multiplier <= 0:
+            multiplier = 1.0
+            
+        base_calories = float(chosen_food_data.get('calories', 0)) / multiplier
+        base_protein = float(chosen_food_data.get('protein', 0)) / multiplier
+        base_carbs = float(chosen_food_data.get('carbs', 0)) / multiplier
+        base_fat = float(chosen_food_data.get('fat', 0)) / multiplier
+        base_fiber = float(chosen_food_data.get('fiber', 0)) / multiplier
+        base_sodium = float(chosen_food_data.get('sodium', 0)) / multiplier
+        
+        # Save or update FoodItem
+        food_item, _ = FoodItem.objects.get_or_create(
+            name=chosen_food_name.lower().strip(),
+            defaults={
+                "calories_per_100g": base_calories,
+                "protein": base_protein,
+                "carbs": base_carbs,
+                "fat": base_fat,
+                "fiber": base_fiber,
+                "sodium": base_sodium,
+            }
+        )
+        
+        # Save MealLog
+        today = timezone.now().date()
+        meal = MealLog.objects.create(
+            user=request.user,
+            food_item=food_item,
+            quantity=quantity,
+            unit=unit,
+            calories=float(chosen_food_data.get('calories', 0)),
+            protein=float(chosen_food_data.get('protein', 0)),
+            carbs=float(chosen_food_data.get('carbs', 0)),
+            fat=float(chosen_food_data.get('fat', 0)),
+            fiber=float(chosen_food_data.get('fiber', 0)),
+            sodium=float(chosen_food_data.get('sodium', 0)),
+            source='USDA',
+            date=today
+        )
+        
+        # Update DailySummary
+        update_daily_summary(request.user, today)
+        
+        # Upsert FoodPreference
+        normalized = normalize_query(food_query)
+        pref, created = FoodPreference.objects.get_or_create(
+            user=request.user,
+            food_query=normalized,
+            defaults={
+                'preferred_food_name': chosen_food_name,
+                'preferred_food_data': {
+                    'calories': base_calories,
+                    'protein': base_protein,
+                    'carbs': base_carbs,
+                    'fat': base_fat,
+                    'fiber': base_fiber,
+                    'sodium': base_sodium,
+                },
+                'log_count': 1
+            }
+        )
+        if not created:
+            pref.log_count += 1
+            pref.preferred_food_name = chosen_food_name
+            pref.preferred_food_data = {
+                'calories': base_calories,
+                'protein': base_protein,
+                'carbs': base_carbs,
+                'fat': base_fat,
+                'fiber': base_fiber,
+                'sodium': base_sodium,
+            }
+            pref.save()
+
+        # Calculate today's totals
+        logs = MealLog.objects.filter(user=request.user, date=today)
+        total_calories = sum(log.calories for log in logs)
+        total_protein = sum(log.protein for log in logs)
+        total_carbs = sum(log.carbs for log in logs)
+        total_fats = sum(log.fat for log in logs)
+        total_fiber = sum(log.fiber for log in logs)
+        total_sugar = sum(log.sugar for log in logs)
+        total_sodium = sum(log.sodium for log in logs)
+
+        return JsonResponse({
+            "success": True,
+            "logged": [{
+                "food": chosen_food_name,
+                "quantity": quantity,
+                "unit": unit,
+                "calories": meal.calories,
+                "protein": meal.protein,
+                "carbs": meal.carbs,
+                "fat": meal.fat,
+                "fiber": meal.fiber,
+                "sodium": meal.sodium,
+            }],
+            "meal_id": meal.id,
+            "date": str(today),
+            "total_calories": total_calories,
+            "total_protein": total_protein,
+            "total_carbs": total_carbs,
+            "total_fats": total_fats,
+            "total_fiber": total_fiber,
+            "total_sugar": total_sugar,
+            "total_sodium": total_sodium,
+        })
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @csrf_exempt
@@ -1052,7 +1492,11 @@ def delete_meal(request):
             
             # Ensure user can only delete their own meals
             meal_log = MealLog.objects.get(id=meal_id, user=request.user)
+            meal_date = meal_log.date
             meal_log.delete()
+            
+            # Recalculate daily summary for that date
+            update_daily_summary(request.user, meal_date)
             
             return JsonResponse({"success": True})
         except MealLog.DoesNotExist:

@@ -34,6 +34,17 @@
     <div class="surface-card" style="padding: 3rem;">
         <h3 class="t-h3" style="margin-bottom: 2rem;">Acquire Data</h3>
         
+        <!-- Picker Container -->
+        <div id="picker-container" style="display: none; margin-bottom: 2rem; background: var(--c-bg); padding: 1.5rem; border-radius: var(--rad-sm); border: 1px solid var(--c-border);" class="animate-up">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+                <span style="font-weight: 600; font-size: 1.1rem; color: var(--c-text);">We heard: <span id="picker-query" style="color: var(--c-accent-color);"></span></span>
+                <span id="picker-countdown" style="font-size: 0.85rem; color: var(--c-text-muted); font-family: monospace; background: rgba(255,255,255,0.05); padding: 0.2rem 0.6rem; border-radius: var(--rad-pill);">5s...</span>
+            </div>
+            <div id="picker-candidates" style="display: flex; flex-direction: column; gap: 0.8rem;">
+                <!-- Candidates will be inserted here via JS -->
+            </div>
+        </div>
+        
         <!-- Voice -->
         <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; background: var(--c-bg); padding: 1rem; border-radius: var(--rad-sm); border: 1px solid var(--c-border);">
             <button type="button" id="record" class="btn-primary" style="flex-shrink: 0; min-width: 150px; background: transparent; border: 1px solid var(--c-accent-color); color: var(--c-accent-color);">
@@ -98,7 +109,7 @@
         padding: 1rem 1.5rem; border-radius: var(--rad-pill); font-size: 1rem; transition: var(--trans-fast); outline: none;
     }
     .fittar-input:focus { border-color: var(--c-accent-color); }
-    .toast.show { opacity: 1; transform: translateY(-10px); }
+    .toast.show { opacity: 1; transform: translateY(-10px); pointer-events: auto; }
     .toast.error { background: #ff5555; color: white; }
     .toast.warning { background: #ffcc00; color: black; }
     
@@ -127,10 +138,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const manualLogBtn = document.getElementById('manual-log');
     const noMealsMessage = document.getElementById('no-meals-message');
 
-    function showToast(message, type = 'success') {
-        toast.textContent = message;
+    function showToast(message, type = 'success', isHTML = false) {
+        if (isHTML) {
+            toast.innerHTML = message;
+        } else {
+            toast.textContent = message;
+        }
         toast.className = `toast ${type} show`;
-        setTimeout(() => toast.classList.remove('show'), 3000);
+        if (window.toastTimeout) clearTimeout(window.toastTimeout);
+        window.toastTimeout = setTimeout(() => toast.classList.remove('show'), 5000);
     }
 
     function animateValue(elementId, start, end, duration = 600) {
@@ -145,6 +161,156 @@ document.addEventListener('DOMContentLoaded', function() {
             if (progress < 1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
+    }
+
+    let pickerTimer = null;
+    let pickerCountdownVal = 5;
+
+    function hidePickerCard() {
+        if (pickerTimer) clearInterval(pickerTimer);
+        document.getElementById('picker-container').style.display = 'none';
+    }
+
+    window.selectCandidate = function(query, name, data, qty, unit) {
+        hidePickerCard();
+        
+        fetch('/api/confirm-meal/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                food_query: query,
+                chosen_food_name: name,
+                chosen_food_data: data,
+                quantity: qty,
+                unit: unit
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.success) {
+                loadMeals();
+                const mealId = res.meal_id;
+                let undoMsg = `✓ Logged: ${name} ${qty}${unit} — ${data.calories} kcal`;
+                if (mealId) {
+                    undoMsg += ` <a href="#" onclick="undoLog(event, ${mealId})" style="color: var(--c-accent-color); margin-left: 1rem; text-decoration: underline; font-weight: 700;">[Undo]</a>`;
+                }
+                showToast(undoMsg, 'success', true);
+            } else {
+                showToast('Failed to confirm meal', 'error');
+            }
+        })
+        .catch(() => {
+            showToast('Connection error', 'error');
+        });
+    };
+
+    window.undoLog = function(event, mealId) {
+        if (event) event.preventDefault();
+        toast.classList.remove('show');
+        
+        fetch('/api/delete-meal/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ id: mealId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Log undone successfully');
+                loadMeals();
+            } else {
+                showToast('Failed to undo log', 'error');
+            }
+        })
+        .catch(() => {
+            showToast('Connection error', 'error');
+        });
+    };
+
+    function showPickerCard(data) {
+        hidePickerCard();
+        
+        const container = document.getElementById('picker-container');
+        const querySpan = document.getElementById('picker-query');
+        const countdownSpan = document.getElementById('picker-countdown');
+        const candidatesDiv = document.getElementById('picker-candidates');
+
+        querySpan.textContent = `${data.quantity}${data.unit} ${data.original_query}`;
+        candidatesDiv.innerHTML = '';
+        pickerCountdownVal = 5;
+        countdownSpan.textContent = '5s...';
+
+        data.candidates.forEach((cand, idx) => {
+            const isPreferred = cand.name.toLowerCase() === data.preferred.toLowerCase();
+            const row = document.createElement('div');
+            row.className = `candidate-row${isPreferred ? ' preferred' : ''}`;
+            row.style.cssText = `
+                display: flex; align-items: center; justify-content: space-between; 
+                padding: 0.8rem 1.2rem; border: 1px solid ${isPreferred ? 'var(--c-accent-color)' : 'var(--c-border)'}; 
+                background: ${isPreferred ? 'rgba(var(--c-accent-rgb, 255, 107, 0), 0.08)' : 'var(--c-bg)'}; 
+                border-radius: var(--rad-pill); cursor: pointer; transition: 0.2s;
+            `;
+
+            row.onmouseover = () => {
+                row.style.borderColor = 'var(--c-accent-color)';
+                row.style.background = 'rgba(var(--c-accent-rgb, 255, 107, 0), 0.15)';
+            };
+            row.onmouseout = () => {
+                row.style.borderColor = isPreferred ? 'var(--c-accent-color)' : 'var(--c-border)';
+                row.style.background = isPreferred ? 'rgba(var(--c-accent-rgb, 255, 107, 0), 0.08)' : 'var(--c-bg)';
+            };
+
+            const leftPart = document.createElement('div');
+            leftPart.style.cssText = 'display: flex; align-items: center; gap: 0.8rem;';
+            
+            const dot = document.createElement('div');
+            dot.style.cssText = `
+                width: 12px; height: 12px; border-radius: 50%; 
+                border: 2px solid ${isPreferred ? 'var(--c-accent-color)' : 'var(--c-text-muted)'};
+                background: ${isPreferred ? 'var(--c-accent-color)' : 'transparent'};
+            `;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = cand.name;
+            nameSpan.style.fontWeight = '600';
+            nameSpan.style.color = 'var(--c-text)';
+
+            leftPart.appendChild(dot);
+            leftPart.appendChild(nameSpan);
+
+            const rightPart = document.createElement('span');
+            rightPart.textContent = `${cand.calories} kcal`;
+            rightPart.style.cssText = 'color: var(--c-accent-color); font-weight: 700;';
+
+            row.appendChild(leftPart);
+            row.appendChild(rightPart);
+
+            row.onclick = () => {
+                window.selectCandidate(data.food_query, cand.name, cand, data.quantity, data.unit);
+            };
+
+            candidatesDiv.appendChild(row);
+        });
+
+        container.style.display = 'block';
+
+        // Start countdown
+        pickerTimer = setInterval(() => {
+            pickerCountdownVal--;
+            countdownSpan.textContent = `${pickerCountdownVal}s...`;
+            if (pickerCountdownVal <= 0) {
+                clearInterval(pickerTimer);
+                // Auto-select preferred
+                const preferredCand = data.candidates.find(c => c.name.toLowerCase() === data.preferred.toLowerCase()) || data.candidates[0];
+                window.selectCandidate(data.food_query, preferredCand.name, preferredCand, data.quantity, data.unit);
+            }
+        }, 1000);
     }
 
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -207,14 +373,33 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('Meal logged successfully!');
-                loadMeals();
-                if (btn === logBtn) {
-                    transcriptDisplay.innerHTML = 'Awaiting voice input...';
-                    transcriptDisplay.style.color = 'var(--c-text-muted)';
-                    transcript = '';
-                } else {
-                    manualInput.value = '';
+                hidePickerCard();
+                
+                if (data.mode === "auto") {
+                    const loggedFood = data.logged[0];
+                    const mealId = data.meal_id || (data.logged[0] ? data.logged[0].id : null);
+                    let undoMsg = `✓ Logged: ${loggedFood.food} ${loggedFood.quantity}${loggedFood.unit} — ${loggedFood.calories} kcal`;
+                    if (mealId) {
+                        undoMsg += ` <a href="#" onclick="undoLog(event, ${mealId})" style="color: var(--c-accent-color); margin-left: 1rem; text-decoration: underline; font-weight: 700;">[Undo]</a>`;
+                    }
+                    showToast(undoMsg, 'success', true);
+                    loadMeals();
+                    if (btn === logBtn) {
+                        transcriptDisplay.innerHTML = 'Awaiting voice input...';
+                        transcriptDisplay.style.color = 'var(--c-text-muted)';
+                        transcript = '';
+                    } else {
+                        manualInput.value = '';
+                    }
+                } else if (data.mode === "picker") {
+                    showPickerCard(data);
+                    if (btn === logBtn) {
+                        transcriptDisplay.innerHTML = 'Awaiting voice input...';
+                        transcriptDisplay.style.color = 'var(--c-text-muted)';
+                        transcript = '';
+                    } else {
+                        manualInput.value = '';
+                    }
                 }
             } else {
                 showToast(data.error || 'Failed to log meal', 'error');

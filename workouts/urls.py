@@ -21,6 +21,7 @@ urlpatterns = [
     # Calorie Tracker URLs
     path('calorie-tracker/', views.calorie_tracker, name='calorie_tracker'),
     path('api/voice-log/', views.log_meal_from_voice, name='voice_log'),
+    path('api/confirm-meal/', views.confirm_meal, name='confirm_meal'),
     path('api/get-daily-summary/', views.get_daily_summary, name='get_daily_summary'),
     path('api/get-daily-meals/', views.get_daily_meals, name='get_daily_meals'),
     path('api/delete-meal/', views.delete_meal, name='delete_meal'),

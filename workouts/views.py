@@ -274,7 +274,11 @@ def video_feed(request, workout_name):
 
 @login_required
 def fitness_chat(request):
-    """Fitness chatbot interface"""
+    """Fitness chatbot interface with intent-based routing and multi-tier fallback"""
+    from workouts.chat.classifier import classify_intent
+    from workouts.chat.engine import get_chat_response
+    from workouts.chat.cache import get_cached_response, set_cached_response
+
     # Get or create chat session
     session_id = request.session.get('chat_session_id')
     if not session_id:
@@ -286,13 +290,11 @@ def fitness_chat(request):
         defaults={'user': request.user}
     )
     
-    # Initialize chatbot
+    # Initialize chatbot for profile summary helper
+    from .fitness_chatbot import FitnessChatbot
     chatbot = FitnessChatbot()
-    
-    # Load user profile data from Django model
     try:
         user_profile = UserProfile.objects.get(user=request.user)
-        # Sync profile data with chatbot
         chatbot.user_data = {
             'height': user_profile.height,
             'weight': user_profile.weight,
@@ -300,92 +302,85 @@ def fitness_chat(request):
             'gender': user_profile.get_gender_display(),
             'fitness_level': user_profile.get_fitness_level_display(),
             'goals': [user_profile.get_primary_goal_display()],
-            'primary_goal': user_profile.primary_goal,  # Keep the code value too
+            'primary_goal': user_profile.primary_goal,
             'injuries_or_limitations': user_profile.injuries_or_limitations,
             'available_time': user_profile.available_time,
             'weak_muscles': user_profile.weak_muscles.split(',') if user_profile.weak_muscles else [],
             'equipment_available': user_profile.equipment_available.split(',') if user_profile.equipment_available else [],
             'calories_per_day': user_profile.calories_per_day,
         }
-        # Update session with profile data
-        session.user_data = chatbot.user_data
-        session.save()
     except UserProfile.DoesNotExist:
-        # Load existing user data from session if no profile exists
         if session.user_data:
             chatbot.user_data = session.user_data
-    
+
     if request.method == 'POST':
-        form = ChatMessageForm(request.POST)
-        if form.is_valid():
-            user_message = form.cleaned_data['message']
+        user_message = request.POST.get("message", "").strip()
+        if not user_message:
+            return JsonResponse({"error": "Empty message"}, status=400)
             
-            # Get current user profile for context
-            user_profile_data = None
-            try:
-                user_profile = UserProfile.objects.get(user=request.user)
-                user_profile_data = {
-                    'height': user_profile.height,
-                    'weight': user_profile.weight,
-                    'age': user_profile.age,
-                    'gender': user_profile.get_gender_display(),
-                    'fitness_level': user_profile.get_fitness_level_display(),
-                    'primary_goal': user_profile.get_primary_goal_display(),
-                    'primary_goal_code': user_profile.primary_goal,
-                    'injuries_or_limitations': user_profile.injuries_or_limitations,
-                    'available_time': user_profile.available_time,
-                    'weak_muscles': user_profile.weak_muscles.split(',') if user_profile.weak_muscles else [],
-                    'equipment_available': user_profile.equipment_available.split(',') if user_profile.equipment_available else [],
-                    'calories_per_day': user_profile.calories_per_day,
-                    'bmi': user_profile.bmi,
-                    'bmi_category': user_profile.bmi_category
-                }
-            except UserProfile.DoesNotExist:
-                pass
-            
-            # Process message with chatbot (pass profile data)
-            bot_response = chatbot.process_message(user_message, user_profile_data)
-            
-            # Ensure we always have a valid response (safety check)
-            if not bot_response or bot_response.strip() == "":
-                bot_response = "💪 I'm here to help with your fitness journey! Could you please rephrase your question about workouts or nutrition?"
-            
-            # Save chat message
+        # Layer 1: classify
+        intent = classify_intent(user_message)
+        
+        # Layer 2: check cache
+        cached = get_cached_response(intent, user_message)
+        if cached:
             ChatMessage.objects.create(
                 session=session,
                 message=user_message,
-                response=bot_response
+                response=cached
             )
+            return JsonResponse({
+                "success": True,
+                "response": cached,
+                "reply": cached, 
+                "intent": intent, 
+                "tier": "cache"
+            })
             
-            # Update session user data
-            session.user_data = chatbot.user_data
-            session.save()
-            
-            # Return JSON response for AJAX
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'response': bot_response,
-                    'user_data': chatbot.get_user_profile_summary()
-                })
-    else:
-        form = ChatMessageForm()
-    
-    # Professional chat approach - show limited recent messages or start fresh
+        # Context-aware enhancement: inject user profile to user message for accurate calculations
+        context_msg = user_message
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+            profile_context = f"[Context: User weight={user_profile.weight}kg, height={user_profile.height}cm, age={user_profile.age}, gender={user_profile.get_gender_display()}, goal={user_profile.get_primary_goal_display()}]"
+            context_msg = f"{profile_context} {user_message}"
+        except UserProfile.DoesNotExist:
+            pass
+
+        # Layer 3: get response through fallback chain
+        result = get_chat_response(intent, context_msg)
+        bot_response = result["reply"]
+        
+        # Save chat message in database
+        ChatMessage.objects.create(
+            session=session,
+            message=user_message,
+            response=bot_response
+        )
+        
+        # Layer 4: cache the result (use user_message as key)
+        set_cached_response(intent, user_message, bot_response)
+        
+        return JsonResponse({
+            "success": True,
+            "response": bot_response,
+            "reply": bot_response,
+            "intent": intent,
+            "tier": result["tier"]
+        })
+        
+    # GET request
+    form = ChatMessageForm()
     show_history = request.GET.get('show_history', 'false') == 'true'
     if show_history:
-        # Show recent messages when explicitly requested
         messages = session.messages.all().order_by('-timestamp')[:5]
     else:
-        # Start with a clean professional interface - no old history by default
         messages = []
-    
-    # Professional welcome message for new sessions
+        
     if not messages and not show_history:
         welcome_message = "Welcome to OS Architect. I am your Senior Fitness & Nutrition Coach. Let's build your transformation protocol or address your biomechanics queries."
     else:
         welcome_message = None
-    
+        
     context = {
         'form': form,
         'messages': messages,

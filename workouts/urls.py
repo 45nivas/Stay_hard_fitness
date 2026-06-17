@@ -36,4 +36,14 @@ urlpatterns = [
     path('body-analysis/', views.body_analysis_view, name='body_analysis'),
     path('api/analyse-body/', views.analyse_body_api, name='analyse_body_api'),
     path('api/voice-log-workout/', views.voice_log_workout_api, name='voice_log_workout_api'),
+    # Decoupled APIs
+    path('api/login/', views.api_login, name='api_login'),
+    path('api/signup/', views.api_signup, name='api_signup'),
+    path('api/logout/', views.api_logout, name='api_logout'),
+    path('api/user-status/', views.api_user_status, name='api_user_status'),
+    path('api/workouts/', views.api_workout_selection, name='api_workout_selection'),
+    path('api/profile-setup/', views.api_profile_get_or_post, name='api_profile_get_or_post'),
+    path('api/chat/', views.api_fitness_chat, name='api_fitness_chat'),
+    path('api/one-rep-max/', views.api_one_rep_max_calculator, name='api_one_rep_max_calculator'),
+    path('api/carb-cycling/', views.api_carb_cycling_calculator, name='api_carb_cycling_calculator'),
 ]

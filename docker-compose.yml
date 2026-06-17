@@ -30,5 +30,16 @@ services:
     ports:
       - "6379:6379"
 
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - web
+
 volumes:
   postgres_data:

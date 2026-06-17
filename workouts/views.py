@@ -2530,4 +2530,398 @@ def voice_log_workout_api(request):
     })
 
 
+# ==========================================
+# DECOUPLED FRONTEND REST API ENDPOINTS
+# ==========================================
+
+@csrf_exempt
+def api_login(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return JsonResponse({
+            "success": True, 
+            "username": user.username,
+            "has_profile": hasattr(user, 'userprofile')
+        })
+    else:
+        return JsonResponse({"error": "Invalid username or password"}, status=400)
+
+
+@csrf_exempt
+def api_signup(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    
+    if not username or not password:
+        return JsonResponse({"error": "Username and password are required"}, status=400)
+        
+    from django.contrib.auth.models import User
+    if User.objects.filter(username=username).exists():
+        return JsonResponse({"error": "Username already exists"}, status=400)
+        
+    try:
+        user = User.objects.create_user(username=username, password=password)
+        login(request, user)
+        return JsonResponse({
+            "success": True, 
+            "username": user.username,
+            "has_profile": False
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+def api_logout(request):
+    from django.contrib.auth import logout
+    logout(request)
+    return JsonResponse({"success": True})
+
+
+def api_user_status(request):
+    if request.user.is_authenticated:
+        return JsonResponse({
+            "authenticated": True,
+            "username": request.user.username,
+            "has_profile": hasattr(request.user, 'userprofile')
+        })
+    return JsonResponse({"authenticated": False})
+
+
+@login_required
+def api_workout_selection(request):
+    workouts = [
+        {'name': 'Squats', 'slug': 'squats', 'category': 'Legs'},
+        {'name': 'Push-ups', 'slug': 'pushups', 'category': 'Chest'},
+        {'name': 'Bicep Curls', 'slug': 'bicep_curls', 'category': 'Biceps'},
+        {'name': 'Hammer Curls', 'slug': 'hammer_curls', 'category': 'Biceps'},
+        {'name': 'Side Raises', 'slug': 'side_raises', 'category': 'Shoulders'},
+    ]
+    return JsonResponse({"workouts": workouts})
+
+
+@csrf_exempt
+@login_required
+def api_profile_get_or_post(request):
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        profile = None
+        
+    if request.method == 'GET':
+        if not profile:
+            return JsonResponse({"has_profile": False})
+        return JsonResponse({
+            "has_profile": True,
+            "age": profile.age,
+            "height": profile.height,
+            "weight": profile.weight,
+            "gender": profile.gender,
+            "fitness_level": profile.fitness_level,
+            "primary_goal": profile.primary_goal,
+            "injuries_or_limitations": profile.injuries_or_limitations,
+            "available_time": profile.available_time,
+            "weak_muscles": profile.weak_muscles,
+            "equipment_available": profile.equipment_available,
+            "calories_per_day": profile.calories_per_day,
+            "bmi": profile.bmi,
+            "bmi_category": profile.bmi_category
+        })
+        
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            
+        age = data.get('age')
+        height = data.get('height')
+        weight = data.get('weight')
+        gender = data.get('gender')
+        fitness_level = data.get('fitness_level')
+        primary_goal = data.get('primary_goal')
+        available_time = data.get('available_time')
+        
+        if not all([age, height, weight, gender, fitness_level, primary_goal, available_time]):
+            return JsonResponse({"error": "Missing required fields"}, status=400)
+            
+        if not profile:
+            profile = UserProfile(user=request.user)
+            
+        profile.age = int(age)
+        profile.height = float(height)
+        profile.weight = float(weight)
+        profile.gender = gender
+        profile.fitness_level = fitness_level
+        profile.primary_goal = primary_goal
+        profile.injuries_or_limitations = data.get('injuries_or_limitations', '')
+        profile.available_time = int(available_time)
+        profile.weak_muscles = data.get('weak_muscles', '')
+        profile.equipment_available = data.get('equipment_available', '')
+        profile.calories_per_day = data.get('calories_per_day')
+        profile.save()
+        
+        # Clear existing chat session
+        session_id = request.session.get('chat_session_id')
+        if session_id:
+            try:
+                ChatSession.objects.filter(session_id=session_id, user=request.user).delete()
+                del request.session['chat_session_id']
+            except Exception:
+                pass
+                
+        return JsonResponse({"success": True})
+        
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+@login_required
+def api_fitness_chat(request):
+    from workouts.chat.classifier import classify_intent
+    from workouts.chat.engine import get_chat_response
+    from workouts.chat.cache import get_cached_response, set_cached_response
+    
+    session_id = request.session.get('chat_session_id')
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        request.session['chat_session_id'] = session_id
+        
+    session, created = ChatSession.objects.get_or_create(
+        session_id=session_id,
+        defaults={'user': request.user}
+    )
+    
+    chatbot = FitnessChatbot()
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        chatbot.user_data = {
+            'height': user_profile.height,
+            'weight': user_profile.weight,
+            'age': user_profile.age,
+            'gender': user_profile.get_gender_display(),
+            'fitness_level': user_profile.get_fitness_level_display(),
+            'goals': [user_profile.get_primary_goal_display()],
+            'primary_goal': user_profile.primary_goal,
+            'injuries_or_limitations': user_profile.injuries_or_limitations,
+            'available_time': user_profile.available_time,
+            'weak_muscles': user_profile.weak_muscles.split(',') if user_profile.weak_muscles else [],
+            'equipment_available': user_profile.equipment_available.split(',') if user_profile.equipment_available else [],
+            'calories_per_day': user_profile.calories_per_day,
+        }
+    except UserProfile.DoesNotExist:
+        if session.user_data:
+            chatbot.user_data = session.user_data
+            
+    if request.method == 'GET':
+        messages = session.messages.all().order_by('timestamp')
+        messages_list = []
+        for m in messages:
+            messages_list.append({
+                "message": m.message,
+                "response": m.response,
+                "timestamp": m.timestamp.isoformat()
+            })
+            
+        welcome_message = "Welcome to OS Architect. I am your Senior Fitness & Nutrition Coach. Let's build your transformation protocol or address your biomechanics queries."
+        
+        return JsonResponse({
+            "messages": messages_list,
+            "welcome_message": welcome_message if not messages_list else None,
+            "user_summary": chatbot.get_user_profile_summary(),
+            "is_gemini_active": bool(os.getenv("GEMINI_API_KEY"))
+        })
+        
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_message = data.get("message", "").strip()
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            
+        if not user_message:
+            return JsonResponse({"error": "Empty message"}, status=400)
+            
+        intent = classify_intent(user_message)
+        cached = get_cached_response(intent, user_message)
+        if cached:
+            ChatMessage.objects.create(
+                session=session,
+                message=user_message,
+                response=cached
+            )
+            return JsonResponse({
+                "success": True,
+                "response": cached,
+                "reply": cached,
+                "intent": intent,
+                "tier": "cache"
+            })
+            
+        context_msg = user_message
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+            profile_context = f"[Context: User weight={user_profile.weight}kg, height={user_profile.height}cm, age={user_profile.age}, gender={user_profile.get_gender_display()}, goal={user_profile.get_primary_goal_display()}]"
+            context_msg = f"{profile_context} {user_message}"
+        except UserProfile.DoesNotExist:
+            pass
+            
+        result = get_chat_response(intent, context_msg)
+        bot_response = result["reply"]
+        
+        ChatMessage.objects.create(
+            session=session,
+            message=user_message,
+            response=bot_response
+        )
+        
+        set_cached_response(intent, user_message, bot_response)
+        
+        return JsonResponse({
+            "success": True,
+            "response": bot_response,
+            "reply": bot_response,
+            "intent": intent,
+            "tier": result["tier"]
+        })
+        
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+@login_required
+def api_one_rep_max_calculator(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body)
+        weight = float(data.get('weight', 0))
+        reps = int(data.get('reps', 0))
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+    if weight <= 0 or reps <= 0:
+        return JsonResponse({"error": "Weight and reps must be positive numbers"}, status=400)
+        
+    epley = weight * (1 + reps / 30.0)
+    if reps < 37:
+        brzycki = weight / (1.0278 - (0.0278 * reps))
+    else:
+        brzycki = epley
+        
+    lander = (100.0 * weight) / (101.3 - 2.6712 * reps)
+    
+    one_rep_max = round((epley + brzycki + lander) / 3.0, 1)
+    
+    percentages = {}
+    for pct in range(50, 105, 5):
+        percentages[f"{pct}%"] = round(one_rep_max * (pct / 100.0), 1)
+        
+    return JsonResponse({
+        "one_rep_max": one_rep_max,
+        "percentages": percentages,
+        "epley": round(epley, 1),
+        "brzycki": round(brzycki, 1),
+        "lander": round(lander, 1)
+    })
+
+
+@csrf_exempt
+@login_required
+def api_carb_cycling_calculator(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body)
+        age = int(data.get('age', 0))
+        gender = data.get('gender', 'male')
+        height = float(data.get('height', 0))
+        weight = float(data.get('weight', 0))
+        height_unit = data.get('height_unit', 'cm')
+        weight_unit = data.get('weight_unit', 'kg')
+        activity_level = data.get('activity_level', 'moderate')
+        goal = data.get('goal', 'maintenance')
+        training_days = int(data.get('training_days', 3))
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+    if height_unit == 'ft':
+        height = height * 30.48
+    if weight_unit == 'lbs':
+        weight = weight * 0.453592
+        
+    if gender == 'male':
+        bmr = (10.0 * weight) + (6.25 * height) - (5.0 * age) + 5.0
+    else:
+        bmr = (10.0 * weight) + (6.25 * height) - (5.0 * age) - 161.0
+        
+    activity_multipliers = {
+        'sedentary': 1.2,
+        'light': 1.375,
+        'moderate': 1.55,
+        'active': 1.725,
+        'very_active': 1.9
+    }
+    
+    multiplier = activity_multipliers.get(activity_level, 1.2)
+    tdee = bmr * multiplier
+    
+    if goal == 'weight_loss':
+        target_calories = tdee - 500
+    elif goal == 'muscle_gain':
+        target_calories = tdee + 400
+    else:
+        target_calories = tdee
+        
+    protein_g = round(weight * 2.2)
+    protein_cal = protein_g * 4
+    
+    high_carb_cal = target_calories + 200
+    high_fat_cal = high_carb_cal * 0.25
+    high_fat_g = round(high_fat_cal / 9.0)
+    high_carb_cal_rem = high_carb_cal - (protein_cal + high_fat_cal)
+    high_carb_g = round(max(high_carb_cal_rem / 4.0, 0))
+    
+    low_carb_cal = target_calories - 300
+    low_fat_cal = low_carb_cal * 0.35
+    low_fat_g = round(low_fat_cal / 9.0)
+    low_carb_cal_rem = low_carb_cal - (protein_cal + low_fat_cal)
+    low_carb_g = round(max(low_carb_cal_rem / 4.0, 0))
+    
+    return JsonResponse({
+        "bmr": round(bmr),
+        "tdee": round(tdee),
+        "target_calories": round(target_calories),
+        "protein_g": protein_g,
+        "high_carb_day": {
+            "calories": round(high_carb_cal),
+            "carbs_g": high_carb_g,
+            "protein_g": protein_g,
+            "fat_g": high_fat_g
+        },
+        "low_carb_day": {
+            "calories": round(low_carb_cal),
+            "carbs_g": low_carb_g,
+            "protein_g": protein_g,
+            "fat_g": low_fat_g
+        }
+    })
+
+
 

@@ -2027,4 +2027,507 @@ def generate_adaptive_workout(request):
     })
 
 
+def extract_landmarks_and_symmetry(image_bytes):
+    import mediapipe as mp
+    import numpy as np
+    import cv2
+
+    mp_pose = mp.solutions.pose
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None:
+        return None
+    
+    with mp_pose.Pose(static_image_mode=True) as pose:
+        results = pose.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    
+    if not results.pose_landmarks:
+        return None
+    
+    lm = results.pose_landmarks.landmark
+    h, w = img.shape[:2]
+    
+    def pt(idx):
+        return (lm[idx].x * w, lm[idx].y * h)
+    
+    def dist(a, b):
+        return ((a[0]-b[0])**2 + (a[1]-b[1])**2) ** 0.5
+    
+    # Key measurements
+    shoulder_width = dist(pt(11), pt(12))
+    hip_width = dist(pt(23), pt(24))
+    left_arm = dist(pt(11), pt(13)) + dist(pt(13), pt(15))
+    right_arm = dist(pt(12), pt(14)) + dist(pt(14), pt(16))
+    left_leg = dist(pt(23), pt(25)) + dist(pt(25), pt(27))
+    right_leg = dist(pt(24), pt(26)) + dist(pt(26), pt(28))
+    torso_height = dist(pt(11), pt(23))
+    
+    # Symmetry scores (0-100, 100 = perfect symmetry)
+    arm_symmetry = round(100 - abs(left_arm - right_arm) / 
+                   max(left_arm, right_arm) * 100, 1)
+    leg_symmetry = round(100 - abs(left_leg - right_leg) / 
+                   max(left_leg, right_leg) * 100, 1)
+    
+    # Shoulder to hip ratio (ideal is 1.618 for V-taper)
+    taper_ratio = round(shoulder_width / hip_width, 3) if hip_width > 0 else 0
+    
+    return {
+        "shoulder_width_px": round(shoulder_width, 1),
+        "hip_width_px": round(hip_width, 1),
+        "taper_ratio": taper_ratio,
+        "arm_symmetry_score": arm_symmetry,
+        "leg_symmetry_score": leg_symmetry,
+        "torso_height_px": round(torso_height, 1),
+        "landmarks_detected": True
+    }
+
+
+def analyse_with_gemini_vision(image_bytes, landmark_data):
+    import google.generativeai as genai
+    from django.conf import settings
+    import base64
+    import json
+
+    api_key = os.getenv("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', None)
+    if not api_key:
+        return None
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        landmark_context = ""
+        if landmark_data:
+            landmark_context = f"""
+MediaPipe measurements from this image:
+- Shoulder to hip taper ratio: {landmark_data['taper_ratio']} 
+  (ideal V-taper = 1.618+)
+- Arm symmetry: {landmark_data['arm_symmetry_score']}%
+- Leg symmetry: {landmark_data['leg_symmetry_score']}%
+Use this data to support your visual analysis.
+"""
+        
+        prompt = f"""
+You are a professional physique coach and sports scientist 
+performing a body composition visual assessment.
+
+Analyse the visible muscle development in this photo and 
+return ONLY a valid JSON object. No explanation, no markdown.
+
+{landmark_context}
+
+Score each muscle group from 1 to 10:
+1-3 = underdeveloped (priority focus needed)
+4-6 = moderate development
+7-10 = well developed
+
+Return this exact JSON structure:
+{{
+  "muscle_scores": {{
+    "chest": <1-10>,
+    "shoulders": <1-10>,
+    "biceps": <1-10>,
+    "triceps": <1-10>,
+    "back_width": <1-10>,
+    "back_thickness": <1-10>,
+    "core": <1-10>,
+    "quads": <1-10>,
+    "hamstrings": <1-10>,
+    "calves": <1-10>
+  }},
+  "weak_groups": ["list", "of", "groups", "scoring", "under", "5"],
+  "dominant_groups": ["list", "of", "groups", "scoring", "7", "or", "above"],
+  "body_type": "ectomorph | mesomorph | endomorph",
+  "taper_assessment": "V-taper | Balanced | Narrow shoulders | Wide hips",
+  "priority_recommendation": "2-3 sentence clinical recommendation focusing on the weakest 2-3 groups",
+  "suggested_split": "Push Pull Legs with extra shoulder volume",
+  "confidence": "high | medium | low",
+  "disclaimer": "AI visual estimation only. Not a clinical assessment."
+}}
+"""
+        image_part = {
+            "mime_type": "image/jpeg",
+            "data": base64.b64encode(image_bytes).decode()
+        }
+        response = model.generate_content([prompt, image_part])
+        text = response.text.strip()
+        # strip markdown if present
+        text = text.replace("```json", "").replace("```", "").strip()
+        return json.loads(text)
+    except Exception as e:
+        print("Gemini vision analysis error:", e)
+        return None
+
+
+def landmark_only_fallback(landmark_data):
+    if not landmark_data:
+        return None
+    
+    taper = landmark_data["taper_ratio"]
+    arm_sym = landmark_data["arm_symmetry_score"]
+    leg_sym = landmark_data["leg_symmetry_score"]
+    
+    # Derive basic scores from proportions
+    shoulder_score = min(10, round(taper * 4)) if taper > 0 else 5
+    symmetry_note = "good" if arm_sym > 90 else "imbalance detected"
+    
+    return {
+        "muscle_scores": {
+            "chest": 5, "shoulders": shoulder_score,
+            "biceps": 5, "triceps": 5,
+            "back_width": max(1, shoulder_score - 1),
+            "back_thickness": 5, "core": 5,
+            "quads": 5, "hamstrings": 5, "calves": 4
+        },
+        "weak_groups": ["calves", "hamstrings"],
+        "dominant_groups": ["shoulders"] if shoulder_score >= 7 else [],
+        "body_type": "mesomorph",
+        "taper_assessment": "V-taper" if taper >= 1.5 else "Balanced",
+        "arm_symmetry": f"{arm_sym}% ({symmetry_note})",
+        "leg_symmetry": f"{leg_sym}%",
+        "priority_recommendation": f"Taper ratio {taper}. Arm symmetry {arm_sym}%. Focus on lagging posterior chain and calves.",
+        "suggested_split": "Push Pull Legs",
+        "confidence": "low",
+        "disclaimer": "Landmark-based estimation only. Upload in good lighting for full AI analysis."
+    }
+
+
+@login_required
+def analyse_body_api(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    
+    photo = request.FILES.get("photo")
+    if not photo:
+        return JsonResponse({"error": "No photo uploaded"}, status=400)
+    
+    # Validate file type
+    allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+    if photo.content_type not in allowed:
+        return JsonResponse(
+            {"error": "Upload JPG, PNG or WEBP only"}, status=400
+        )
+    
+    # Validate file size (max 10MB)
+    if photo.size > 10 * 1024 * 1024:
+        return JsonResponse(
+            {"error": "File too large. Max 10MB."}, status=400
+        )
+    
+    image_bytes = photo.read()
+    # DO NOT save photo to disk — process in memory only
+    
+    # Step 1: MediaPipe landmarks
+    landmark_data = extract_landmarks_and_symmetry(image_bytes)
+    
+    # Step 2: Gemini Vision analysis
+    analysis = analyse_with_gemini_vision(image_bytes, landmark_data)
+    
+    # Step 3: Fallback if Gemini fails
+    if not analysis:
+        analysis = landmark_only_fallback(landmark_data)
+    
+    if not analysis:
+        return JsonResponse(
+            {"error": "Could not detect a body in the photo. Ensure good lighting and full upper body visibility."},
+            status=422
+        )
+    
+    # Attach landmark data to response
+    if landmark_data:
+        analysis["landmark_data"] = landmark_data
+    
+    # Auto-update weak_muscles in UserProfile
+    weak = analysis.get("weak_groups", [])
+    if weak:
+        try:
+            profile = request.user.userprofile
+            profile.weak_muscles = ", ".join(weak)
+            profile.save()
+        except UserProfile.DoesNotExist:
+            UserProfile.objects.create(
+                user=request.user,
+                age=25,
+                height=175.0,
+                weight=70.0,
+                gender='M',
+                fitness_level='intermediate',
+                primary_goal='muscle_gain',
+                available_time=60,
+                weak_muscles=", ".join(weak)
+            )
+    
+    return JsonResponse({"success": True, "analysis": analysis})
+
+
+@login_required
+def body_analysis_view(request):
+    return render(request, "body_analysis.html")
+
+
+def parse_workout_transcript_local_llm(text):
+    import json
+    from workouts.chat.engine import get_local_ollama_response
+    
+    system_prompt = """
+You are a structured workout parser. Extract exercises performed from the user's text.
+For each exercise, extract:
+- exercise_name (e.g. "Squats", "Bench Press")
+- sets (integer)
+- reps (integer)
+- weight_value (number)
+- weight_unit (string, "lbs" or "kg")
+- muscle_group (must be one of: "Chest", "Legs", "Biceps", "Shoulders", "Back", "General")
+
+Ignore chatter like water breaks, rest, warmups.
+Return ONLY a valid JSON array of objects. Do not include markdown or explanations.
+If no exercises are found, return an empty array [].
+"""
+    
+    response = get_local_ollama_response(system_prompt, text, model="qwen2.5:3b")
+    if not response:
+        return None
+        
+    try:
+        clean_response = response.strip()
+        if clean_response.startswith("```json"):
+            clean_response = clean_response[7:-3].strip()
+        elif clean_response.startswith("```"):
+            clean_response = clean_response[3:-3].strip()
+        return json.loads(clean_response)
+    except Exception as e:
+        print("Error parsing local LLM JSON response:", e, "Raw response:", response)
+        return None
+
+
+def parse_workout_transcript_fallback_regex(text):
+    import re
+    
+    # Split by common sentence/clause boundaries
+    segments = re.split(r'[.,;]|\band\b|\bthen\b|\blater\b|\bnext\b|\n', text, flags=re.IGNORECASE)
+    results = []
+    
+    # Define regex patterns
+    # Pattern 1: sets of reps at weight unit exercise_name (e.g. "3 sets of 12 reps at 100 lbs bench press")
+    p1 = re.compile(
+        r'(\d+)\s*(?:sets?)\s*(?:of\s*)?(\d+)\s*(?:reps?|rep)\s*(?:at|@|with|of)?\s*(\d+(?:\.\d+)?)\s*(lbs|kg|pounds|lb)?\s*(?:of\s*)?([a-zA-Z\s\-]+)',
+        re.IGNORECASE
+    )
+    # Pattern 2: exercise_name sets of reps at weight unit (e.g. "bench press 3 sets of 12 reps at 100 lbs")
+    p2 = re.compile(
+        r'([a-zA-Z\s\-]+)\s*(\d+)\s*(?:sets?)\s*(?:of\s*)?(\d+)\s*(?:reps?|rep)\s*(?:at|@|with|of)?\s*(\d+(?:\.\d+)?)\s*(lbs|kg|pounds|lb)?',
+        re.IGNORECASE
+    )
+    # Pattern 3: exercise_name sets x reps at weight unit (e.g. "bench press 3x12 at 100 lbs")
+    p3 = re.compile(
+        r'([a-zA-Z\s\-]+)\s*(\d+)\s*(?:x|×)\s*(\d+)\s*(?:at|@|with|of)?\s*(\d+(?:\.\d+)?)\s*(lbs|kg|pounds|lb)?',
+        re.IGNORECASE
+    )
+    # Pattern 4: sets x reps exercise_name at weight unit (e.g. "3x12 bench press at 100 lbs")
+    p4 = re.compile(
+        r'(\d+)\s*(?:x|×)\s*(\d+)\s*(?:of\s*)?([a-zA-Z\s\-]+?)\s+(?:at|@|with)?\s*(\d+(?:\.\d+)?)\s*(lbs|kg|pounds|lb)?\b',
+        re.IGNORECASE
+    )
+    # Pattern 5: sets of reps of exercise_name at weight unit (e.g. "3 sets of 12 reps of bench press at 100 lbs")
+    p5 = re.compile(
+        r'(\d+)\s*(?:sets?)\s*(?:of\s*)?(\d+)\s*(?:reps?|rep)\s*(?:of\s*)?([a-zA-Z\s\-]+?)\s+(?:at|@|with)?\s*(\d+(?:\.\d+)?)\s*(lbs|kg|pounds|lb)?\b',
+        re.IGNORECASE
+    )
+
+    for seg in segments:
+        seg = seg.strip()
+        if not seg:
+            continue
+            
+        match = None
+        exercise_name = ""
+        sets = 1
+        reps = 0
+        weight_value = 0.0
+        weight_unit = "kg"
+        
+        m1 = p1.search(seg)
+        if m1:
+            sets = int(m1.group(1))
+            reps = int(m1.group(2))
+            weight_value = float(m1.group(3))
+            weight_unit = m1.group(4) or "kg"
+            exercise_name = m1.group(5)
+            match = m1
+            
+        if not match:
+            m2 = p2.search(seg)
+            if m2:
+                exercise_name = m2.group(1)
+                sets = int(m2.group(2))
+                reps = int(m2.group(3))
+                weight_value = float(m2.group(4))
+                weight_unit = m2.group(5) or "kg"
+                match = m2
+                
+        if not match:
+            m3 = p3.search(seg)
+            if m3:
+                exercise_name = m3.group(1)
+                sets = int(m3.group(2))
+                reps = int(m3.group(3))
+                weight_value = float(m3.group(4))
+                weight_unit = m3.group(5) or "kg"
+                match = m3
+                
+        if not match:
+            m4 = p4.search(seg)
+            if m4:
+                sets = int(m4.group(1))
+                reps = int(m4.group(2))
+                exercise_name = m4.group(3)
+                weight_value = float(m4.group(4))
+                weight_unit = m4.group(5) or "kg"
+                match = m4
+
+        if not match:
+            m5 = p5.search(seg)
+            if m5:
+                sets = int(m5.group(1))
+                reps = int(m5.group(2))
+                exercise_name = m5.group(3)
+                weight_value = float(m5.group(4))
+                weight_unit = m5.group(5) or "kg"
+                match = m5
+                
+        if match:
+            ex_clean = exercise_name.strip()
+            ex_clean = re.sub(
+                r'^(?:today\s+|i\s+went\s+to\s+the\s+gym\s+and\s+|started\s+with\s+|did\s+some\s+|did\s+|i\s+did\s+|warmed\s+up\s+with\s+)',
+                '',
+                ex_clean,
+                flags=re.IGNORECASE
+            )
+            ex_clean = re.sub(
+                r'(?:\s+for\s+\d+\s+sets.*|\s+sets.*|\s+reps.*|\s+warmup|\s+warm\s+up)$',
+                '',
+                ex_clean,
+                flags=re.IGNORECASE
+            ).strip()
+            
+            if not ex_clean or reps <= 0:
+                continue
+                
+            ex_lower = ex_clean.lower()
+            muscle_group = "General"
+            if any(k in ex_lower for k in ["bench", "chest", "pec", "fly", "pushup", "dips"]):
+                muscle_group = "Chest"
+            elif any(k in ex_lower for k in ["squat", "leg", "quad", "hamstring", "calf", "lunge", "extension"]):
+                muscle_group = "Legs"
+            elif any(k in ex_lower for k in ["curl", "bicep"]):
+                muscle_group = "Biceps"
+            elif any(k in ex_lower for k in ["shoulder", "press", "delt", "raise"]):
+                muscle_group = "Shoulders"
+            elif any(k in ex_lower for k in ["row", "lat", "pull", "deadlift", "back", "chinup", "pullup"]):
+                muscle_group = "Back"
+                
+            results.append({
+                "exercise_name": ex_clean.title(),
+                "sets": sets,
+                "reps": reps,
+                "weight_value": weight_value,
+                "weight_unit": weight_unit,
+                "muscle_group": muscle_group
+            })
+            
+    return results
+
+
+@login_required
+def voice_log_workout_api(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+        
+    import json
+    try:
+        data = json.loads(request.body)
+        text = data.get("text", "").strip()
+    except Exception:
+        text = request.POST.get("text", "").strip()
+        
+    if not text:
+        return JsonResponse({"error": "No workout transcript text provided"}, status=400)
+        
+    parsed_exercises = parse_workout_transcript_local_llm(text)
+    source = "local_llm"
+    
+    if not parsed_exercises:
+        parsed_exercises = parse_workout_transcript_fallback_regex(text)
+        source = "regex_fallback"
+        
+    if not parsed_exercises:
+        return JsonResponse({"error": "No exercises could be parsed. Try formatting like: 'Bench press 3 sets of 12 reps at 100 lbs'."}, status=422)
+        
+    logged_workouts = []
+    
+    for item in parsed_exercises:
+        try:
+            exercise_name = item.get("exercise_name", "").strip()
+            sets = int(item.get("sets", 1))
+            reps = int(item.get("reps", 0))
+            weight_val = float(item.get("weight_value", 0.0))
+            weight_unit = item.get("weight_unit", "kg").strip().lower()
+            muscle_group = item.get("muscle_group", "General").strip()
+            
+            if not exercise_name or reps <= 0:
+                continue
+                
+            if weight_unit in ["lbs", "lb", "pounds", "pound", "pnds"]:
+                weight_kg = round(weight_val * 0.45359237, 1)
+            else:
+                weight_kg = round(weight_val, 1)
+                
+            allowed_groups = ["Legs", "Chest", "Biceps", "Shoulders", "Back", "General"]
+            normalized_mg = muscle_group.title()
+            if normalized_mg not in allowed_groups:
+                if "leg" in normalized_mg.lower() or "quad" in normalized_mg.lower():
+                    normalized_mg = "Legs"
+                elif "chest" in normalized_mg.lower() or "pec" in normalized_mg.lower():
+                    normalized_mg = "Chest"
+                elif "bicep" in normalized_mg.lower():
+                    normalized_mg = "Biceps"
+                elif "shoulder" in normalized_mg.lower() or "delt" in normalized_mg.lower():
+                    normalized_mg = "Shoulders"
+                elif "back" in normalized_mg.lower() or "lat" in normalized_mg.lower() or "row" in normalized_mg.lower():
+                    normalized_mg = "Back"
+                else:
+                    normalized_mg = "General"
+                    
+            log_entry = WorkoutLog.objects.create(
+                user=request.user,
+                exercise_name=exercise_name,
+                sets=sets,
+                reps=reps,
+                weight=weight_kg,
+                muscle_group=normalized_mg,
+                duration_minutes=sets * 2
+            )
+            
+            logged_workouts.append({
+                "exercise_name": log_entry.exercise_name,
+                "sets": log_entry.sets,
+                "reps": log_entry.reps,
+                "weight": log_entry.weight,
+                "muscle_group": log_entry.muscle_group,
+                "volume": log_entry.total_volume
+            })
+        except Exception as e:
+            print("Error logging voice workout entry:", e)
+            continue
+            
+    if not logged_workouts:
+        return JsonResponse({"error": "No valid exercises could be saved."}, status=422)
+        
+    return JsonResponse({
+        "success": True,
+        "source": source,
+        "logged": logged_workouts
+    })
+
+
 

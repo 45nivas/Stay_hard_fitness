@@ -129,6 +129,16 @@
   .tag-shoulders { background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
   .tag-back { background: rgba(111, 66, 193, 0.15); color: #6f42c1; border: 1px solid rgba(111, 66, 193, 0.3); }
   .tag-general { background: rgba(108, 117, 125, 0.15); color: #6c757d; border: 1px solid rgba(108, 117, 125, 0.3); }
+  
+  #btnVoiceMic.recording {
+    color: #ff3b30 !important;
+    animation: pulseMic 1.5s infinite;
+  }
+  @keyframes pulseMic {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.18); opacity: 0.6; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 </style>
 {% endblock %}
 
@@ -257,47 +267,87 @@
     {% endif %}
   </div>
 
-  <!-- Manual Workout Logger Form -->
+  <!-- Manual & Voice Workout Logger Form -->
   <div class="surface-card" style="padding: 2rem;">
-    <h3 class="t-h3" style="font-size: 1.15rem; color: #fff; margin-bottom: 1.5rem;">Manual Logger</h3>
-    <form method="post" style="display: flex; flex-direction: column; gap: 1.25rem;">
-      {% csrf_token %}
-      <div>
-        <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Exercise Name</label>
-        <input type="text" name="exercise_name" required placeholder="e.g. Bench Press" class="fittar-input" style="width: 100%;">
-      </div>
-
-      <div>
-        <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Target Muscle Group</label>
-        <select name="muscle_group" class="fittar-select" style="width: 100%;">
-          <option value="Chest">Chest</option>
-          <option value="Legs">Legs</option>
-          <option value="Biceps">Biceps</option>
-          <option value="Shoulders">Shoulders</option>
-          <option value="Back">Back</option>
-          <option value="General">Other / General</option>
-        </select>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-        <div>
-          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Sets</label>
-          <input type="number" name="sets" min="1" value="3" required class="fittar-input" style="width: 100%;">
-        </div>
-        <div>
-          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Reps</label>
-          <input type="number" name="reps" min="1" value="10" required class="fittar-input" style="width: 100%;">
-        </div>
-        <div>
-          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Weight (kg)</label>
-          <input type="number" step="0.5" name="weight" min="0" value="20" required class="fittar-input" style="width: 100%;">
-        </div>
-      </div>
-
-      <button type="submit" class="btn-primary" style="margin-top: 0.5rem; width: 100%; text-transform: uppercase; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.05em; padding: 0.75rem;">
-        Add Log Entry
+    <!-- Toggle Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1rem;">
+      <h3 class="t-h3" id="loggerTitle" style="font-size: 1.15rem; color: #fff; margin: 0;">Manual Logger</h3>
+      <button id="btnToggleLogger" type="button" class="btn-outline" style="padding: 0.35rem 1rem; font-size: 0.8rem; border-radius: var(--rad-pill); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+        Switch to Voice
       </button>
-    </form>
+    </div>
+
+    <!-- Form Logger Mode -->
+    <div id="formLoggerSection">
+      <form method="post" style="display: flex; flex-direction: column; gap: 1.25rem;">
+        {% csrf_token %}
+        <div>
+          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Exercise Name</label>
+          <input type="text" name="exercise_name" required placeholder="e.g. Bench Press" class="fittar-input" style="width: 100%;">
+        </div>
+
+        <div>
+          <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Target Muscle Group</label>
+          <select name="muscle_group" class="fittar-select" style="width: 100%;">
+            <option value="Chest">Chest</option>
+            <option value="Legs">Legs</option>
+            <option value="Biceps">Biceps</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Back">Back</option>
+            <option value="General">Other / General</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+          <div>
+            <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Sets</label>
+            <input type="number" name="sets" min="1" value="3" required class="fittar-input" style="width: 100%;">
+          </div>
+          <div>
+            <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Reps</label>
+            <input type="number" name="reps" min="1" value="10" required class="fittar-input" style="width: 100%;">
+          </div>
+          <div>
+            <label class="t-muted" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Weight (kg)</label>
+            <input type="number" step="0.5" name="weight" min="0" value="20" required class="fittar-input" style="width: 100%;">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 0.5rem; width: 100%; text-transform: uppercase; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.05em; padding: 0.75rem;">
+          Add Log Entry
+        </button>
+      </form>
+    </div>
+
+    <!-- Voice Logger Mode -->
+    <div id="voiceLoggerSection" style="display: none;">
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <p class="t-muted" style="font-size: 0.85rem; line-height: 1.5; margin: 0;">
+          Dictate or type your training session. The local AI will extract exercises, filter out rest remarks, convert lbs to kg, and log everything.
+        </p>
+
+        <div style="position: relative; width: 100%;">
+          <textarea id="voiceTranscriptInput" class="fittar-input" style="width: 100%; min-height: 140px; border-radius: var(--rad-sm); padding-right: 3rem; resize: vertical; line-height: 1.5; font-size: 0.95rem;" placeholder="e.g. today I did bench press 3 sets of 12 reps with 100 lbs. Then took a water break and did squat 4 sets of 8 reps at 80 kg..."></textarea>
+          
+          <!-- Mic Dictation Button -->
+          <button id="btnVoiceMic" type="button" style="position: absolute; right: 0.75rem; bottom: 0.75rem; background: transparent; border: none; cursor: pointer; color: var(--c-text-muted); padding: 0.5rem; transition: var(--trans-fast); display: flex; align-items: center; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mic-icon"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          </button>
+        </div>
+
+        <button id="btnAnalyseVoiceLog" type="button" class="btn-primary" style="margin-top: 0.5rem; width: 100%; text-transform: uppercase; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.05em; padding: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+          ANALYSE & LOG WORKOUT
+        </button>
+
+        <!-- Voice Logs Result Box -->
+        <div id="voiceLogsResultBox" style="display: none; margin-top: 0.5rem; padding: 1.25rem; background: rgba(0, 255, 136, 0.04); border: 1px solid rgba(0, 255, 136, 0.15); border-radius: var(--rad-sm);">
+          <h4 style="color: var(--c-accent-color); font-weight: 700; font-size: 0.9rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em;">Logs Created:</h4>
+          <ul id="voiceLogsList" class="t-muted" style="font-size: 0.85rem; padding-left: 1.25rem; line-height: 1.6; margin: 0;">
+            <!-- list entries inserted dynamically -->
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -421,6 +471,136 @@
         console.error('AI Routine Error:', err);
         alert('Error communicating with AI engine.');
       });
+  });
+
+  // VOICE WORKOUT LOGGER JAVASCRIPT
+  const btnToggle = document.getElementById('btnToggleLogger');
+  const loggerTitle = document.getElementById('loggerTitle');
+  const formSection = document.getElementById('formLoggerSection');
+  const voiceSection = document.getElementById('voiceLoggerSection');
+  const voiceInput = document.getElementById('voiceTranscriptInput');
+  
+  btnToggle.addEventListener('click', function() {
+    if (formSection.style.display !== 'none') {
+      formSection.style.display = 'none';
+      voiceSection.style.display = 'block';
+      loggerTitle.textContent = 'Voice Logger';
+      btnToggle.textContent = 'Switch to Form';
+    } else {
+      formSection.style.display = 'block';
+      voiceSection.style.display = 'none';
+      loggerTitle.textContent = 'Manual Logger';
+      btnToggle.textContent = 'Switch to Voice';
+    }
+  });
+
+  // Browser-native Web Speech Recognition
+  const btnVoiceMic = document.getElementById('btnVoiceMic');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+  if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    
+    let isRecording = false;
+    
+    btnVoiceMic.addEventListener('click', function() {
+      if (!isRecording) {
+        recognition.start();
+      } else {
+        recognition.stop();
+      }
+    });
+    
+    recognition.onstart = function() {
+      isRecording = true;
+      btnVoiceMic.classList.add('recording');
+    };
+    
+    recognition.onend = function() {
+      isRecording = false;
+      btnVoiceMic.classList.remove('recording');
+    };
+    
+    recognition.onerror = function(event) {
+      console.error('Speech recognition error:', event.error);
+      isRecording = false;
+      btnVoiceMic.classList.remove('recording');
+    };
+    
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      if (voiceInput.value.trim() !== '') {
+        voiceInput.value = voiceInput.value.trim() + ' ' + transcript;
+      } else {
+        voiceInput.value = transcript;
+      }
+    };
+  } else {
+    // Hide mic button if browser doesn't support Web Speech API
+    btnVoiceMic.style.display = 'none';
+  }
+
+  // Voice transcript analysis submission
+  const btnAnalyse = document.getElementById('btnAnalyseVoiceLog');
+  const resultBox = document.getElementById('voiceLogsResultBox');
+  const logsList = document.getElementById('voiceLogsList');
+  
+  btnAnalyse.addEventListener('click', function() {
+    const text = voiceInput.value.trim();
+    if (!text) {
+      alert('Please enter or dictate a workout transcript.');
+      return;
+    }
+    
+    btnAnalyse.disabled = true;
+    btnAnalyse.textContent = 'Analysing & Logging...';
+    resultBox.style.display = 'none';
+    logsList.innerHTML = '';
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch('/api/voice-log-workout/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ text: text })
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(err => { throw new Error(err.error || 'Server error during parsing'); });
+      }
+      return response.json();
+    })
+    .then(data => {
+      btnAnalyse.disabled = false;
+      btnAnalyse.textContent = 'ANALYSE & LOG WORKOUT';
+      
+      if (data.success && data.logged) {
+        resultBox.style.display = 'block';
+        data.logged.forEach(log => {
+          const li = document.createElement('li');
+          li.innerHTML = `Logged <strong>${log.exercise_name}</strong>: ${log.sets} sets × ${log.reps} reps @ <strong>${log.weight} kg</strong> (${log.muscle_group})`;
+          logsList.appendChild(li);
+        });
+        
+        // Reload page to refresh telemetry charts and logs tables after displaying creation summary
+        setTimeout(() => {
+          window.location.reload();
+        }, 1800);
+      }
+    })
+    .catch(err => {
+      btnAnalyse.disabled = false;
+      btnAnalyse.textContent = 'ANALYSE & LOG WORKOUT';
+      console.error('Voice logger error:', err);
+      alert('Error: ' + err.message);
+    });
   });
 </script>
 {% endblock %}

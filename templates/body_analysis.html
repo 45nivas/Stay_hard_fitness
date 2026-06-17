@@ -1,0 +1,641 @@
+{% extends 'base.html' %}
+{% block title %}Body Vision | Stay Hard Fitness{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN for visual analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        border-top-color: var(--c-accent-color);
+        animation: spin 1s linear infinite;
+        margin-bottom: 1.5rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .badge-pill {
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--rad-pill);
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .bg-accent {
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--c-accent-color);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+
+    .badge-green {
+        background: rgba(40, 167, 69, 0.15);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .badge-red {
+        background: rgba(220, 53, 69, 0.15);
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+
+    .badge-amber {
+        background: rgba(255, 193, 7, 0.15);
+        color: #ffc107;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .upload-zone {
+        border: 2px dashed var(--c-border);
+        padding: 4rem 2rem;
+        border-radius: var(--rad-md);
+        background: rgba(255, 255, 255, 0.01);
+        cursor: pointer;
+        transition: var(--trans-smooth);
+        margin-bottom: 2rem;
+        position: relative;
+        text-align: center;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--c-accent-color);
+        background: rgba(0, 255, 136, 0.02);
+    }
+
+    .fittar-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 2.5rem;
+        align-items: start;
+    }
+
+    .error-panel {
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        color: #ff6b6b;
+        padding: 1.25rem;
+        border-radius: var(--rad-sm);
+        margin-bottom: 2rem;
+        display: none;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .muscle-score-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .muscle-score-row:last-child {
+        border-bottom: none;
+    }
+
+    @media (max-width: 900px) {
+        .fittar-grid { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="animate-up" style="max-width: 1000px; margin-top: 2rem; margin-bottom: 3rem;">
+    <h1 class="t-h1 mb-2">Body <span class="t-accent">Vision</span></h1>
+    <p class="t-muted" style="font-size: 1.25rem;">AI-powered muscle development analyser. Upload a shirtless photo to extract skeletal geometry and assess muscle balance.</p>
+</div>
+
+<!-- CSRF Token -->
+{% csrf_token %}
+
+<!-- Upload Section -->
+<div id="upload-section" class="animate-up" style="max-width: 800px; margin: 0 auto; margin-bottom: 3rem;">
+    <div class="surface-card" style="padding: 2.5rem; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 60%); pointer-events: none;"></div>
+        
+        <h3 class="t-h3" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+            Physique Upload
+            <a href="{% url 'workout_selection' %}" class="btn-outline" style="padding: 0.4rem 1rem; font-size: 0.8rem; border-radius: var(--rad-pill);">DASHBOARD</a>
+        </h3>
+
+        <!-- Error Panel -->
+        <div id="error-message" class="error-panel"></div>
+
+        <!-- Drag & Drop Zone -->
+        <div id="drop-zone" class="upload-zone">
+            <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" style="display: none;">
+            
+            <div id="drop-zone-prompt">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1.5rem; color: var(--c-text-muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p style="font-size: 1.15rem; margin-bottom: 0.5rem; font-weight: 600;">Drag and drop your photo here, or <span class="t-accent" style="text-decoration: underline;">browse</span></p>
+                <p class="t-muted" style="font-size: 0.85rem;">Supports JPG, PNG, WEBP (Max 10MB)</p>
+            </div>
+
+            <!-- Preview Image -->
+            <div id="preview-container" style="display: none; width: 100%;">
+                <img id="image-preview" src="#" alt="Selected Physique Preview" style="max-width: 100%; max-height: 400px; border-radius: var(--rad-sm); display: block; margin: 0 auto; border: 1px solid var(--c-border);" />
+                <button type="button" id="btn-remove-photo" class="btn-outline" style="margin: 1.5rem auto 0; padding: 0.4rem 1.25rem; font-size: 0.85rem; border-radius: var(--rad-pill); display: block;">Remove Photo</button>
+            </div>
+        </div>
+
+        <button id="btn-analyse" class="btn-primary" style="width: 100%; font-size: 1.05rem; padding: 0.9rem; border-radius: var(--rad-pill); display: flex; align-items: center; justify-content: center; gap: 0.5rem; letter-spacing: 0.05em; font-weight: 700;" disabled>
+            ANALYSE MY BODY
+        </button>
+
+        <p class="t-muted" style="font-size: 0.85rem; margin-top: 1.5rem; line-height: 1.5; text-align: center;">
+            Photos are processed in memory and never stored. <br>
+            AI visual estimation only — not a clinical assessment.
+        </p>
+    </div>
+</div>
+
+<!-- Loading State Overlay -->
+<div id="loading-overlay" class="animate-up" style="display: none; max-width: 800px; margin: 0 auto 3rem; text-align: center;">
+    <div class="surface-card" style="padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+        <div class="spinner"></div>
+        <h3 class="t-h3" style="color: #fff;">Extracting Biometrics...</h3>
+        <p class="t-muted" style="max-width: 550px; font-size: 1rem; line-height: 1.6; margin-top: 0.5rem;">
+            MediaPipe is identifying key skeletal landmarks and computing symmetry indexes, while Gemini analyzes muscular balance. This will take about 3-6 seconds.
+        </p>
+    </div>
+</div>
+
+<!-- Results Section (hidden initially) -->
+<div id="results-section" class="animate-up" style="display: none; max-width: 1200px; margin: 0 auto; margin-bottom: 5rem;">
+    <div class="fittar-grid">
+        
+        <!-- Left Column: Chart & Landmark Telemetry -->
+        <div class="surface-card" style="padding: 2.5rem; display: flex; flex-direction: column; gap: 2.5rem;">
+            <div>
+                <h3 class="t-h3" style="margin-bottom: 0.5rem;">Skeletal & Muscular Analysis</h3>
+                <p class="t-muted" style="font-size: 0.95rem;">Radar distribution of assessed muscle development (1-10 scale).</p>
+            </div>
+            
+            <div style="position: relative; height: 350px; width: 100%;">
+                <canvas id="radarChart"></canvas>
+            </div>
+
+            <!-- Landmark Telemetry Grid -->
+            <div id="landmark-telemetry-container" style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1.75rem;">
+                <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--c-text-muted); margin-bottom: 1.25rem; letter-spacing: 0.05em; font-weight: 700;">Biometric Landmark Telemetry</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <span class="t-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em;">Taper Ratio (Shoulder/Hip)</span>
+                        <h4 class="t-h3" id="metric-taper" style="margin-top: 0.3rem; font-weight: 700;">0.00 <span style="font-size: 0.85rem; font-weight: 500; color: var(--c-text-muted);">/ 1.618 (Ideal)</span></h4>
+                    </div>
+                    <div>
+                        <span class="t-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em;">Arm Symmetry</span>
+                        <h4 class="t-h3" id="metric-arm-sym" style="margin-top: 0.3rem; font-weight: 700;">0.0%</h4>
+                    </div>
+                    <div>
+                        <span class="t-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em;">Leg Symmetry</span>
+                        <h4 class="t-h3" id="metric-leg-sym" style="margin-top: 0.3rem; font-weight: 700;">0.0%</h4>
+                    </div>
+                    <div>
+                        <span class="t-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em;">Analysis Confidence</span>
+                        <h4 class="t-h3" id="metric-confidence" style="margin-top: 0.3rem; font-weight: 700; text-transform: capitalize;">Medium</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Scores list, Badges & Recommendations -->
+        <div class="surface-card" style="padding: 2.5rem; display: flex; flex-direction: column; gap: 2.25rem;">
+            
+            <!-- Classification Badges -->
+            <div>
+                <h3 class="t-h3" style="margin-bottom: 1.25rem;">Physique Classification</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                    <span id="badge-body-type" class="badge-pill bg-accent">Mesomorph</span>
+                    <span id="badge-taper" class="badge-pill bg-accent">Balanced Taper</span>
+                </div>
+            </div>
+
+            <!-- Detailed Muscle Group Scores -->
+            <div>
+                <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--c-text-muted); margin-bottom: 1rem; letter-spacing: 0.05em; font-weight: 700;">Development Breakdown</h4>
+                <div id="muscle-scores-list" style="background: rgba(0, 0, 0, 0.2); padding: 1.25rem; border-radius: var(--rad-sm); border: 1px solid rgba(255, 255, 255, 0.03);">
+                    <!-- Muscle group score rows added dynamically -->
+                </div>
+            </div>
+
+            <!-- Badge Displays for Dominant vs Weak -->
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                <div>
+                    <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--c-text-muted); margin-bottom: 0.75rem; letter-spacing: 0.05em; font-weight: 700;">Dominant Muscle Groups</h4>
+                    <div id="dominant-muscles" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <!-- Badges added dynamically -->
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--c-text-muted); margin-bottom: 0.75rem; letter-spacing: 0.05em; font-weight: 700;">Weak Muscle Groups</h4>
+                    <div id="weak-muscles" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <!-- Badges added dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Recommendations -->
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
+                <div>
+                    <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--c-text-muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; font-weight: 700;">Coach Priority Recommendation</h4>
+                    <p id="rec-priority" class="t-muted" style="line-height: 1.6; font-size: 0.95rem;"></p>
+                </div>
+
+                <div>
+                    <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--c-text-muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; font-weight: 700;">Suggested Training Split</h4>
+                    <p id="rec-split" style="font-weight: 700; font-size: 1.25rem; color: #fff;"></p>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <p id="results-disclaimer" class="t-muted" style="font-size: 0.8rem; line-height: 1.4; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1.25rem; margin-top: 0.5rem;"></p>
+
+            <!-- Action Button -->
+            <button id="btn-generate-plan" class="btn-primary" style="width: 100%; font-size: 1rem; padding: 0.9rem; border-radius: var(--rad-pill); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.5rem;">
+                Generate Workout Plan
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // File inputs & drag-and-drop elements
+    const dropZone = document.getElementById('drop-zone');
+    const photoInput = document.getElementById('photo-input');
+    const dropZonePrompt = document.getElementById('drop-zone-prompt');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const btnRemovePhoto = document.getElementById('btn-remove-photo');
+    const btnAnalyse = document.getElementById('btn-analyse');
+    const errorMessage = document.getElementById('error-message');
+    
+    // UI Layout containers
+    const uploadSection = document.getElementById('upload-section');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const resultsSection = document.getElementById('results-section');
+    
+    // Results placeholders
+    const metricTaper = document.getElementById('metric-taper');
+    const metricArmSym = document.getElementById('metric-arm-sym');
+    const metricLegSym = document.getElementById('metric-leg-sym');
+    const metricConfidence = document.getElementById('metric-confidence');
+    const badgeBodyType = document.getElementById('badge-body-type');
+    const badgeTaper = document.getElementById('badge-taper');
+    const dominantMuscles = document.getElementById('dominant-muscles');
+    const weakMuscles = document.getElementById('weak-muscles');
+    const muscleScoresList = document.getElementById('muscle-scores-list');
+    const recPriority = document.getElementById('rec-priority');
+    const recSplit = document.getElementById('rec-split');
+    const resultsDisclaimer = document.getElementById('results-disclaimer');
+    const btnGeneratePlan = document.getElementById('btn-generate-plan');
+
+    let selectedFile = null;
+    let myRadarChart = null;
+
+    // Helper: format muscle name to readable text
+    function formatMuscleName(name) {
+        return name.split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    // Trigger file chooser
+    dropZone.addEventListener('click', (e) => {
+        // Prevent click trigger if removing photo
+        if (e.target !== btnRemovePhoto && !btnRemovePhoto.contains(e.target)) {
+            photoInput.click();
+        }
+    });
+
+    // Drag-over logic
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            handleFileSelection(e.dataTransfer.files[0]);
+        }
+    });
+
+    photoInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelection(e.target.files[0]);
+        }
+    });
+
+    // Remove photo logic
+    btnRemovePhoto.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedFile = null;
+        photoInput.value = '';
+        imagePreview.src = '#';
+        previewContainer.style.display = 'none';
+        dropZonePrompt.style.display = 'block';
+        btnAnalyse.disabled = true;
+        errorMessage.style.display = 'none';
+    });
+
+    function handleFileSelection(file) {
+        // Validate type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            showError('Please upload a JPG, PNG, or WEBP photo.');
+            return;
+        }
+
+        // Validate size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            showError('File is too large. Maximum size is 10MB.');
+            return;
+        }
+
+        selectedFile = file;
+        errorMessage.style.display = 'none';
+        
+        // Show Preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+            dropZonePrompt.style.display = 'none';
+            previewContainer.style.display = 'block';
+            btnAnalyse.disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function showError(text) {
+        errorMessage.innerText = text;
+        errorMessage.style.display = 'block';
+        uploadSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Submit for analysis
+    btnAnalyse.addEventListener('click', () => {
+        if (!selectedFile) return;
+
+        // Hide upload panel, show loading overlay
+        uploadSection.style.display = 'none';
+        loadingOverlay.style.display = 'block';
+        errorMessage.style.display = 'none';
+        loadingOverlay.scrollIntoView({ behavior: 'smooth' });
+
+        const formData = new FormData();
+        formData.append('photo', selectedFile);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('/api/analyse-body/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.error || 'Server error during analysis'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.analysis) {
+                renderResults(data.analysis);
+            } else {
+                throw new Error('Analysis failed or returned empty results.');
+            }
+        })
+        .catch(err => {
+            console.error('Body Analysis Error:', err);
+            // Hide loading, show upload back with error message
+            loadingOverlay.style.display = 'none';
+            uploadSection.style.display = 'block';
+            showError(err.message || 'Error communicating with analysis engine.');
+        });
+    });
+
+    function renderResults(analysis) {
+        // 1. Hide loading
+        loadingOverlay.style.display = 'none';
+        resultsSection.style.display = 'block';
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+
+        // 2. Populate landmark metrics
+        const lm = analysis.landmark_data || {};
+        
+        if (lm.taper_ratio) {
+            metricTaper.innerHTML = `${lm.taper_ratio.toFixed(3)} <span style="font-size: 0.85rem; font-weight: 500; color: var(--c-text-muted);">/ 1.618 (Ideal)</span>`;
+        } else {
+            metricTaper.innerText = analysis.taper_assessment || 'Balanced';
+        }
+
+        if (lm.arm_symmetry_score) {
+            metricArmSym.innerText = `${lm.arm_symmetry_score}%`;
+        } else if (analysis.arm_symmetry) {
+            metricArmSym.innerText = analysis.arm_symmetry;
+        } else {
+            metricArmSym.innerText = 'N/A';
+        }
+
+        if (lm.leg_symmetry_score) {
+            metricLegSym.innerText = `${lm.leg_symmetry_score}%`;
+        } else if (analysis.leg_symmetry) {
+            metricLegSym.innerText = analysis.leg_symmetry;
+        } else {
+            metricLegSym.innerText = 'N/A';
+        }
+
+        metricConfidence.innerText = analysis.confidence || 'Medium';
+
+        // 3. Badges (Body type & Taper assessment)
+        badgeBodyType.innerText = analysis.body_type || 'Mesomorph';
+        badgeTaper.innerText = analysis.taper_assessment || 'Balanced';
+
+        // 4. Dominant & Weak badge pills
+        dominantMuscles.innerHTML = '';
+        if (analysis.dominant_groups && analysis.dominant_groups.length > 0) {
+            analysis.dominant_groups.forEach(group => {
+                const badge = document.createElement('span');
+                badge.className = 'badge-pill badge-green';
+                badge.innerText = formatMuscleName(group);
+                dominantMuscles.appendChild(badge);
+            });
+        } else {
+            dominantMuscles.innerHTML = '<span class="t-muted" style="font-size: 0.9rem;">None assessed</span>';
+        }
+
+        weakMuscles.innerHTML = '';
+        if (analysis.weak_groups && analysis.weak_groups.length > 0) {
+            analysis.weak_groups.forEach(group => {
+                const badge = document.createElement('span');
+                badge.className = 'badge-pill badge-red';
+                badge.innerText = formatMuscleName(group);
+                weakMuscles.appendChild(badge);
+            });
+        } else {
+            weakMuscles.innerHTML = '<span class="t-muted" style="font-size: 0.9rem;">None assessed</span>';
+        }
+
+        // 5. Scores list with color-coding
+        muscleScoresList.innerHTML = '';
+        const scores = analysis.muscle_scores || {};
+        Object.entries(scores).forEach(([muscle, score]) => {
+            const row = document.createElement('div');
+            row.className = 'muscle-score-row';
+            
+            let scoreClass = 'badge-amber';
+            if (score <= 3) {
+                scoreClass = 'badge-red';
+            } else if (score >= 7) {
+                scoreClass = 'badge-green';
+            }
+
+            row.innerHTML = `
+                <span style="font-weight: 500; font-size: 0.95rem; color: #ddd;">${formatMuscleName(muscle)}</span>
+                <span class="badge-pill ${scoreClass}" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Score: ${score}/10</span>
+            `;
+            muscleScoresList.appendChild(row);
+        });
+
+        // 6. Text recommendations
+        recPriority.innerText = analysis.priority_recommendation || '';
+        recSplit.innerText = analysis.suggested_split || 'Push Pull Legs';
+        resultsDisclaimer.innerText = analysis.disclaimer || 'AI visual estimation only — not a clinical assessment.';
+
+        // 7. Render Radar Chart
+        renderRadarChart(scores);
+    }
+
+    function renderRadarChart(scores) {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        const labels = [
+            'Chest', 'Shoulders', 'Biceps', 'Triceps', 
+            'Back Width', 'Back Thickness', 'Core', 
+            'Quads', 'Hamstrings', 'Calves'
+        ];
+        
+        const dataValues = [
+            scores.chest || 5,
+            scores.shoulders || 5,
+            scores.biceps || 5,
+            scores.triceps || 5,
+            scores.back_width || 5,
+            scores.back_thickness || 5,
+            scores.core || 5,
+            scores.quads || 5,
+            scores.hamstrings || 5,
+            scores.calves || 5
+        ];
+
+        if (myRadarChart) {
+            myRadarChart.destroy();
+        }
+
+        myRadarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Score (1-10)',
+                    data: dataValues,
+                    backgroundColor: 'rgba(0, 255, 136, 0.12)',
+                    borderColor: '#00FF88',
+                    pointBackgroundColor: '#00FF88',
+                    pointBorderColor: '#111',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: {
+                            color: 'rgba(255, 255, 255, 0.08)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.08)'
+                        },
+                        pointLabels: {
+                            color: '#aaa',
+                            font: {
+                                family: 'Inter',
+                                size: 10,
+                                weight: 'bold'
+                            }
+                        },
+                        ticks: {
+                            backdropColor: 'transparent',
+                            color: '#666',
+                            font: {
+                                size: 8
+                            },
+                            stepSize: 2
+                        },
+                        min: 0,
+                        max: 10
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Recommendation Generation Button
+    btnGeneratePlan.addEventListener('click', function() {
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Generating Program...';
+
+        fetch('/api/generate-recommendation/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = '/analytics/';
+                } else {
+                    alert('System Info: ' + data.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Generate Workout Plan';
+                }
+            })
+            .catch(err => {
+                console.error('Plan Generation Error:', err);
+                alert('Error communicating with AI engine.');
+                btn.disabled = false;
+                btn.textContent = 'Generate Workout Plan';
+            });
+    });
+</script>
+{% endblock %}

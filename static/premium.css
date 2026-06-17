@@ -375,6 +375,11 @@ a {
   background: rgba(255, 255, 255, 0.05) !important;
 }
 
+.fittar-select option {
+  background-color: #111111 !important;
+  color: #ffffff !important;
+}
+
 /* HUD Metric cards */
 .hud-metric {
   padding: 1.5rem;

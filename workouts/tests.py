@@ -473,3 +473,274 @@ class StayHardFitnessTestSuite(TestCase):
         pref.refresh_from_db()
         self.assertEqual(pref.log_count, 4)
 
+
+class BodyVisionTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.username = 'visionathlete'
+        self.password = 'StrongVisionPass123!'
+        self.user = User.objects.create_user(username=self.username, password=self.password)
+        self.profile = UserProfile.objects.create(
+            user=self.user,
+            age=25,
+            height=175.0,
+            weight=70.0,
+            gender='M',
+            fitness_level='intermediate',
+            primary_goal='muscle_gain',
+            available_time=60,
+            weak_muscles='Chest'
+        )
+
+    def test_body_analysis_view_requires_login(self):
+        response = self.client.get(reverse('body_analysis'))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.get(reverse('body_analysis'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'body_analysis.html')
+
+    def test_analyse_body_api_requires_login_and_post(self):
+        # Unauthenticated POST redirects to login
+        response = self.client.post(reverse('analyse_body_api'))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username=self.username, password=self.password)
+        
+        # GET returns 405 Method Not Allowed
+        response = self.client.get(reverse('analyse_body_api'))
+        self.assertEqual(response.status_code, 405)
+
+    def test_analyse_body_api_missing_photo(self):
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.post(reverse('analyse_body_api'), {})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('No photo uploaded', response.json()['error'])
+
+    def test_analyse_body_api_invalid_file_type(self):
+        self.client.login(username=self.username, password=self.password)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        photo = SimpleUploadedFile("physique.txt", b"not an image", content_type="text/plain")
+        response = self.client.post(reverse('analyse_body_api'), {'photo': photo})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Upload JPG, PNG or WEBP only', response.json()['error'])
+
+    def test_analyse_body_api_file_too_large(self):
+        self.client.login(username=self.username, password=self.password)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        large_bytes = b"0" * (10 * 1024 * 1024 + 1)
+        photo = SimpleUploadedFile("physique.jpg", large_bytes, content_type="image/jpeg")
+        response = self.client.post(reverse('analyse_body_api'), {'photo': photo})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('File too large', response.json()['error'])
+
+    @patch('workouts.views.extract_landmarks_and_symmetry')
+    @patch('workouts.views.analyse_with_gemini_vision')
+    def test_analyse_body_api_success_with_gemini(self, mock_gemini, mock_landmarks):
+        self.client.login(username=self.username, password=self.password)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        photo = SimpleUploadedFile("physique.jpg", b"valid_bytes", content_type="image/jpeg")
+        
+        mock_landmarks.return_value = {
+            "shoulder_width_px": 200.0,
+            "hip_width_px": 120.0,
+            "taper_ratio": 1.667,
+            "arm_symmetry_score": 95.0,
+            "leg_symmetry_score": 93.0,
+            "torso_height_px": 400.0,
+            "landmarks_detected": True
+        }
+        
+        gemini_response = {
+            "muscle_scores": {
+                "chest": 5, "shoulders": 8, "biceps": 6, "triceps": 7,
+                "back_width": 7, "back_thickness": 6, "core": 7,
+                "quads": 4, "hamstrings": 3, "calves": 3
+            },
+            "weak_groups": ["quads", "hamstrings", "calves"],
+            "dominant_groups": ["shoulders", "triceps", "back_width"],
+            "body_type": "mesomorph",
+            "taper_assessment": "V-taper",
+            "priority_recommendation": "Focus on lagging posterior chain and lower body development.",
+            "suggested_split": "Push Pull Legs with lower body focus",
+            "confidence": "high",
+            "disclaimer": "AI visual estimation only."
+        }
+        mock_gemini.return_value = gemini_response
+
+        response = self.client.post(reverse('analyse_body_api'), {'photo': photo})
+        self.assertEqual(response.status_code, 200)
+        
+        res_json = response.json()
+        self.assertTrue(res_json['success'])
+        self.assertEqual(res_json['analysis']['body_type'], 'mesomorph')
+        self.assertEqual(res_json['analysis']['landmark_data']['taper_ratio'], 1.667)
+        
+        # Verify user profile weak_muscles got updated
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.weak_muscles, "quads, hamstrings, calves")
+
+    @patch('workouts.views.extract_landmarks_and_symmetry')
+    @patch('workouts.views.analyse_with_gemini_vision')
+    def test_analyse_body_api_fallback_when_gemini_fails(self, mock_gemini, mock_landmarks):
+        self.client.login(username=self.username, password=self.password)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        photo = SimpleUploadedFile("physique.jpg", b"valid_bytes", content_type="image/jpeg")
+        
+        mock_landmarks.return_value = {
+            "shoulder_width_px": 200.0,
+            "hip_width_px": 120.0,
+            "taper_ratio": 1.667,
+            "arm_symmetry_score": 95.0,
+            "leg_symmetry_score": 93.0,
+            "torso_height_px": 400.0,
+            "landmarks_detected": True
+        }
+        
+        # Gemini fails by returning None
+        mock_gemini.return_value = None
+
+        response = self.client.post(reverse('analyse_body_api'), {'photo': photo})
+        self.assertEqual(response.status_code, 200)
+        
+        res_json = response.json()
+        self.assertTrue(res_json['success'])
+        self.assertEqual(res_json['analysis']['confidence'], 'low')  # Low confidence indicates fallback
+        self.assertEqual(res_json['analysis']['taper_assessment'], 'V-taper')
+        self.assertEqual(res_json['analysis']['weak_groups'], ["calves", "hamstrings"])
+        
+        # Verify user profile weak_muscles got updated with fallback weak groups
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.weak_muscles, "calves, hamstrings")
+
+    @patch('workouts.views.extract_landmarks_and_symmetry')
+    def test_analyse_body_api_fails_when_landmarks_fail(self, mock_landmarks):
+        self.client.login(username=self.username, password=self.password)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        photo = SimpleUploadedFile("physique.jpg", b"invalid_bytes", content_type="image/jpeg")
+        
+        # Landmarks extraction returns None
+        mock_landmarks.return_value = None
+
+        response = self.client.post(reverse('analyse_body_api'), {'photo': photo})
+        self.assertEqual(response.status_code, 422)
+        self.assertIn('Could not detect a body', response.json()['error'])
+
+
+class VoiceWorkoutLoggerTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.username = 'voiceathlete'
+        self.password = 'StrongVoicePass123!'
+        self.user = User.objects.create_user(username=self.username, password=self.password)
+
+    def test_voice_log_workout_api_requires_login_and_post(self):
+        # Unauthenticated redirects to login
+        response = self.client.post(reverse('voice_log_workout_api'))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username=self.username, password=self.password)
+        
+        # GET returns 405 Method Not Allowed
+        response = self.client.get(reverse('voice_log_workout_api'))
+        self.assertEqual(response.status_code, 405)
+
+    def test_voice_log_workout_api_missing_text(self):
+        self.client.login(username=self.username, password=self.password)
+        
+        # Empty text
+        response = self.client.post(
+            reverse('voice_log_workout_api'),
+            data=json.dumps({"text": ""}),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("No workout transcript text provided", response.json()["error"])
+
+    @patch('workouts.views.parse_workout_transcript_local_llm')
+    def test_voice_log_workout_api_success_with_llm(self, mock_llm):
+        self.client.login(username=self.username, password=self.password)
+        
+        mock_llm.return_value = [
+            {
+                "exercise_name": "Incline Bench Press",
+                "sets": 3,
+                "reps": 12,
+                "weight_value": 100.0,
+                "weight_unit": "lbs",
+                "muscle_group": "Chest"
+            },
+            {
+                "exercise_name": "Squats",
+                "sets": 4,
+                "reps": 8,
+                "weight_value": 80.0,
+                "weight_unit": "kg",
+                "muscle_group": "Legs"
+            }
+        ]
+
+        response = self.client.post(
+            reverse('voice_log_workout_api'),
+            data=json.dumps({"text": "random gym yapping text"}),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()
+        self.assertTrue(res_data['success'])
+        self.assertEqual(res_data['source'], 'local_llm')
+        self.assertEqual(len(res_data['logged']), 2)
+        
+        self.assertEqual(res_data['logged'][0]['exercise_name'], 'Incline Bench Press')
+        self.assertEqual(res_data['logged'][0]['weight'], 45.4)
+        
+        self.assertEqual(res_data['logged'][1]['exercise_name'], 'Squats')
+        self.assertEqual(res_data['logged'][1]['weight'], 80.0)
+
+        logs = WorkoutLog.objects.filter(user=self.user)
+        self.assertEqual(logs.count(), 2)
+
+    @patch('workouts.views.parse_workout_transcript_local_llm')
+    def test_voice_log_workout_api_fallback_regex(self, mock_llm):
+        self.client.login(username=self.username, password=self.password)
+        
+        mock_llm.return_value = None
+        yapping_text = "Today I went to the gym. Warmed up, and did 3 sets of 12 reps of bench press at 100 lbs. Then took rest. Later did squats 4x8 with 80 kg."
+        
+        response = self.client.post(
+            reverse('voice_log_workout_api'),
+            data=json.dumps({"text": yapping_text}),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()
+        self.assertTrue(res_data['success'])
+        self.assertEqual(res_data['source'], 'regex_fallback')
+        self.assertEqual(len(res_data['logged']), 2)
+        
+        self.assertEqual(res_data['logged'][0]['exercise_name'], 'Bench Press')
+        self.assertEqual(res_data['logged'][0]['weight'], 45.4)
+        self.assertEqual(res_data['logged'][0]['muscle_group'], 'Chest')
+        
+        self.assertEqual(res_data['logged'][1]['exercise_name'], 'Squats')
+        self.assertEqual(res_data['logged'][1]['weight'], 80.0)
+        self.assertEqual(res_data['logged'][1]['muscle_group'], 'Legs')
+
+    @patch('workouts.views.parse_workout_transcript_local_llm')
+    def test_voice_log_workout_api_invalid_text(self, mock_llm):
+        self.client.login(username=self.username, password=self.password)
+        
+        mock_llm.return_value = None
+        invalid_text = "I drank a water bottle and talked to the trainer today."
+
+        response = self.client.post(
+            reverse('voice_log_workout_api'),
+            data=json.dumps({"text": invalid_text}),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("No exercises could be parsed", response.json()["error"])
+
+
+

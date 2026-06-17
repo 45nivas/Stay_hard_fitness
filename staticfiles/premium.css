@@ -341,3 +341,58 @@ a {
   .t-h1 { font-size: 2.5rem; }
   .fittar-card { padding: 2rem; }
 }
+
+/* ==========================================
+   STAY HARD FITNESS - HUD & GLASS ADDITIONS
+   ========================================== */
+
+/* Glass panel overlay */
+.glass-panel {
+  background: rgba(10, 10, 10, 0.45) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--rad-lg) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Custom premium input/select elements */
+.fittar-input, .fittar-select {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: var(--rad-pill) !important;
+  color: var(--c-text) !important;
+  padding: 1rem 1.5rem !important;
+  font-family: var(--font-main) !important;
+  transition: var(--trans-fast) !important;
+  outline: none !important;
+  font-size: 1rem !important;
+}
+
+.fittar-input:focus, .fittar-select:focus {
+  border-color: var(--c-accent-color) !important;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.18) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* HUD Metric cards */
+.hud-metric {
+  padding: 1.5rem;
+  text-align: center;
+  border-radius: var(--rad-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: var(--trans-smooth);
+}
+
+.hud-metric:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Fix option rendering in dark mode on Chrome/Edge on Windows */
+select option {
+  background-color: #0a0a0a !important;
+  color: #ffffff !important;
+}
+

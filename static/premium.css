@@ -390,3 +390,9 @@ a {
   border-color: rgba(255, 255, 255, 0.15);
 }
 
+/* Fix option rendering in dark mode on Chrome/Edge on Windows */
+select option {
+  background-color: #0a0a0a !important;
+  color: #ffffff !important;
+}
+

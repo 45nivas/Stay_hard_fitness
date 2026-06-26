@@ -105,6 +105,7 @@ export default function WorkoutPage() {
               <img 
                 src={`${API_BASE_URL}/video_feed/${workout_name}/`} 
                 alt="Camera Feed"
+                crossOrigin="use-credentials"
                 onError={() => setCameraError(true)}
                 className="w-full h-full object-cover"
               />

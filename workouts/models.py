@@ -193,8 +193,19 @@ class PostureAnalysis(models.Model):
         return f"{self.user.username}'s {self.exercise_name} Analysis on {self.analysis_date}"
 
 
+class Exercise(models.Model):
+    id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=100, unique=True)
+    muscle_group = models.CharField(max_length=50)
+    aliases = models.JSONField(default=list, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
 class WorkoutLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    exercise = models.ForeignKey(Exercise, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     exercise_name = models.CharField(max_length=100)
     sets = models.PositiveIntegerField(default=1)
     reps = models.PositiveIntegerField(default=0)
@@ -224,5 +235,28 @@ class FoodPreference(models.Model):
 
     def __str__(self):
         return f"{self.user.username} preference for {self.food_query} -> {self.preferred_food_name} (x{self.log_count})"
+
+
+class SetLog(models.Model):
+    workout_log = models.ForeignKey(
+        WorkoutLog, 
+        on_delete=models.CASCADE, 
+        related_name='workout_sets'
+    )
+    set_number = models.PositiveIntegerField()
+    reps = models.PositiveIntegerField(default=0)
+    weight = models.FloatField(default=0.0)
+    unit = models.CharField(max_length=5, default='kg')
+    with_spotter = models.BooleanField(default=False)
+    to_failure = models.BooleanField(default=False)
+    notes = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['set_number']
+
+    @property
+    def volume(self):
+        return self.reps * self.weight
+
 
 

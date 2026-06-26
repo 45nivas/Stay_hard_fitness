@@ -187,7 +187,7 @@ class StayHardFitnessTestSuite(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'calorie_tracker.html')
 
-    @patch('workouts.views.query_gemini_for_foods')
+    @patch('workouts.views.calories.query_gemini_for_foods')
     def test_log_meal_from_voice_and_rec_apis(self, mock_gemini_foods):
         # 1. Mock Gemini returningParsed Food list
         mock_gemini_foods.return_value = [
@@ -299,7 +299,7 @@ class StayHardFitnessTestSuite(TestCase):
         
         # Check databases
         self.assertTrue(PostureAnalysis.objects.filter(user=self.user, exercise_name='Squats').exists())
-        self.assertTrue(WorkoutLog.objects.filter(user=self.user, exercise_name='Squats', muscle_group='Legs').exists())
+        self.assertTrue(WorkoutLog.objects.filter(user=self.user, exercise_name='Squat', muscle_group='Legs').exists())
         
         # Set simulated active session in WORKOUT_STATS
         from workouts.views import WORKOUT_STATS
@@ -370,7 +370,7 @@ class StayHardFitnessTestSuite(TestCase):
         # Check that WorkoutRecommendation object is persisted
         self.assertTrue(WorkoutRecommendation.objects.filter(user_profile=self.profile).exists())
 
-    @patch('workouts.views.query_gemini_for_foods')
+    @patch('workouts.views.calories.query_gemini_for_foods')
     def test_adaptive_food_preference_system(self, mock_gemini_foods):
         # Setup mock for query_gemini_for_foods
         mock_gemini_foods.return_value = [
@@ -535,8 +535,8 @@ class BodyVisionTestCase(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('File too large', response.json()['error'])
 
-    @patch('workouts.views.extract_landmarks_and_symmetry')
-    @patch('workouts.views.analyse_with_gemini_vision')
+    @patch('workouts.views.posture.extract_landmarks_and_symmetry')
+    @patch('workouts.views.posture.analyse_with_gemini_vision')
     def test_analyse_body_api_success_with_gemini(self, mock_gemini, mock_landmarks):
         self.client.login(username=self.username, password=self.password)
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -581,8 +581,8 @@ class BodyVisionTestCase(TestCase):
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.weak_muscles, "quads, hamstrings, calves")
 
-    @patch('workouts.views.extract_landmarks_and_symmetry')
-    @patch('workouts.views.analyse_with_gemini_vision')
+    @patch('workouts.views.posture.extract_landmarks_and_symmetry')
+    @patch('workouts.views.posture.analyse_with_gemini_vision')
     def test_analyse_body_api_fallback_when_gemini_fails(self, mock_gemini, mock_landmarks):
         self.client.login(username=self.username, password=self.password)
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -614,7 +614,7 @@ class BodyVisionTestCase(TestCase):
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.weak_muscles, "calves, hamstrings")
 
-    @patch('workouts.views.extract_landmarks_and_symmetry')
+    @patch('workouts.views.posture.extract_landmarks_and_symmetry')
     def test_analyse_body_api_fails_when_landmarks_fail(self, mock_landmarks):
         self.client.login(username=self.username, password=self.password)
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -658,7 +658,7 @@ class VoiceWorkoutLoggerTestCase(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("No workout transcript text provided", response.json()["error"])
 
-    @patch('workouts.views.parse_workout_transcript_local_llm')
+    @patch('workouts.views.workouts.parse_workout_transcript_local_llm')
     def test_voice_log_workout_api_success_with_llm(self, mock_llm):
         self.client.login(username=self.username, password=self.password)
         
@@ -695,13 +695,13 @@ class VoiceWorkoutLoggerTestCase(TestCase):
         self.assertEqual(res_data['logged'][0]['exercise_name'], 'Incline Bench Press')
         self.assertEqual(res_data['logged'][0]['weight'], 45.4)
         
-        self.assertEqual(res_data['logged'][1]['exercise_name'], 'Squats')
+        self.assertEqual(res_data['logged'][1]['exercise_name'], 'Squat')
         self.assertEqual(res_data['logged'][1]['weight'], 80.0)
 
         logs = WorkoutLog.objects.filter(user=self.user)
         self.assertEqual(logs.count(), 2)
 
-    @patch('workouts.views.parse_workout_transcript_local_llm')
+    @patch('workouts.views.workouts.parse_workout_transcript_local_llm')
     def test_voice_log_workout_api_fallback_regex(self, mock_llm):
         self.client.login(username=self.username, password=self.password)
         
@@ -723,11 +723,11 @@ class VoiceWorkoutLoggerTestCase(TestCase):
         self.assertEqual(res_data['logged'][0]['weight'], 45.4)
         self.assertEqual(res_data['logged'][0]['muscle_group'], 'Chest')
         
-        self.assertEqual(res_data['logged'][1]['exercise_name'], 'Squats')
+        self.assertEqual(res_data['logged'][1]['exercise_name'], 'Squat')
         self.assertEqual(res_data['logged'][1]['weight'], 80.0)
         self.assertEqual(res_data['logged'][1]['muscle_group'], 'Legs')
 
-    @patch('workouts.views.parse_workout_transcript_local_llm')
+    @patch('workouts.views.workouts.parse_workout_transcript_local_llm')
     def test_voice_log_workout_api_invalid_text(self, mock_llm):
         self.client.login(username=self.username, password=self.password)
         
@@ -741,6 +741,91 @@ class VoiceWorkoutLoggerTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 422)
         self.assertIn("No exercises could be parsed", response.json()["error"])
+
+    @patch('workouts.views.workouts.parse_workout_transcript_local_llm')
+    def test_parse_workout_voice_api_success(self, mock_llm):
+        self.client.login(username=self.username, password=self.password)
+        mock_llm.return_value = None
+        
+        # Voice input containing numberless exercises and a bodyweight exercise
+        text = "I did incline bench press and 3 sets of 10 pull ups and then 10 push ups"
+        
+        response = self.client.post(
+            reverse('parse_workout_voice_api'),
+            data=json.dumps({"text": text}),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()
+        self.assertTrue(res_data['success'])
+        
+        parsed = res_data['parsed']
+        self.assertEqual(len(parsed), 3)
+        
+        # 1. Incline Bench Press should default to 3 sets of 10 reps @ 0.0kg
+        self.assertEqual(parsed[0]['exercise_name'], 'Incline Bench Press')
+        self.assertEqual(len(parsed[0]['sets']), 3)
+        self.assertEqual(parsed[0]['sets'][0]['reps'], 10)
+        self.assertEqual(parsed[0]['sets'][0]['weight_value'], 0.0)
+        self.assertEqual(parsed[0]['muscle_group'], 'Chest')
+        
+        # 2. Pull Ups -> Pull Up
+        self.assertEqual(parsed[1]['exercise_name'], 'Pull Up')
+        self.assertEqual(len(parsed[1]['sets']), 3)
+        self.assertEqual(parsed[1]['sets'][0]['reps'], 10)
+        
+        # 3. Push Ups -> Push Up
+        self.assertEqual(parsed[2]['exercise_name'], 'Push Up')
+        self.assertEqual(len(parsed[2]['sets']), 3)
+        self.assertIn(parsed[2]['sets'][0]['reps'], [0, 10])
+
+        # Database should still be empty for today's logs
+        self.assertEqual(WorkoutLog.objects.filter(user=self.user).count(), 0)
+
+    def test_confirm_workout_log_api_success(self):
+        self.client.login(username=self.username, password=self.password)
+        
+        payload = {
+            "exercises": [
+                {
+                    "exercise_name": "Incline Bench Press",
+                    "sets": 3,
+                    "reps": 10,
+                    "weight_value": 60.0,
+                    "weight_unit": "kg",
+                    "muscle_group": "Chest"
+                },
+                {
+                    "exercise_name": "Pull Ups",
+                    "sets": 3,
+                    "reps": 12,
+                    "weight_value": 0.0,
+                    "weight_unit": "kg",
+                    "muscle_group": "Back"
+                }
+            ]
+        }
+        
+        response = self.client.post(
+            reverse('confirm_workout_log_api'),
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()
+        self.assertTrue(res_data['success'])
+        self.assertEqual(len(res_data['logged']), 2)
+        
+        # DB check
+        logs = WorkoutLog.objects.filter(user=self.user).order_by('id')
+        self.assertEqual(logs.count(), 2)
+        self.assertEqual(logs[0].exercise_name, "Incline Bench Press")
+        self.assertEqual(logs[0].sets, 3)
+        self.assertEqual(logs[0].reps, 10)
+        self.assertEqual(logs[0].weight, 60.0)
+        self.assertEqual(logs[1].exercise_name, "Pull Up")
+        self.assertEqual(logs[1].reps, 12)
+
 
 
 

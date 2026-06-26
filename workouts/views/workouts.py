@@ -48,7 +48,14 @@ def workout_page(request, workout_name):
 
 def gen_frames(workout_name, user_id=None):
     # Initialize MediaPipe and rep counter
+    # Try different camera indices and DirectShow backend (often required on Windows)
     cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        cap = cv2.VideoCapture(1)
+    if not cap.isOpened():
+        cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
     
     # Check if camera is available
     camera_available = cap.isOpened()

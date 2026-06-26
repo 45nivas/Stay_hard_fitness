@@ -118,27 +118,27 @@ export default function FitnessChat() {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-120px)]">
       
       {/* Left Sidebar: Profile & Agent Constraints */}
-      <div className="hidden lg:flex lg:col-span-1 bg-dark-card border border-dark-border rounded-3xl p-6 flex-col justify-between overflow-y-auto shadow-xl">
+      <div className="hidden lg:flex lg:col-span-1 bg-dark-card border border-dark-border rounded-3xl p-6 flex-col justify-between overflow-y-auto shadow-sm">
         <div className="space-y-6">
           <div className="flex items-center space-x-2 border-b border-dark-border pb-3">
             <User className="w-5 h-5 text-brand-red" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white m-0">Your Trainer</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 m-0">Your Trainer</h3>
           </div>
 
           <div className="space-y-4 text-xs">
-            <div className="bg-dark-bg border border-dark-border p-4 rounded-2xl">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Target Profile</span>
-              <p className="text-gray-300 leading-relaxed font-semibold italic">
+            <div className="bg-white border border-dark-border p-4 rounded-2xl">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Target Profile</span>
+              <p className="text-slate-700 leading-relaxed font-semibold italic">
                 {userSummary || "Setup your biometric profile to generate detailed coach constraints."}
               </p>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center space-x-2 text-gray-400">
+              <div className="flex items-center space-x-2 text-slate-600">
                 <ShieldCheck className="w-4 h-4 text-brand-red shrink-0" />
                 <span>Intent-based response classifier</span>
               </div>
-              <div className="flex items-center space-x-2 text-gray-400">
+              <div className="flex items-center space-x-2 text-slate-600">
                 <Sparkles className="w-4 h-4 text-brand-red shrink-0 animate-pulse" />
                 <span>{isGemini ? "Gemini Pro 1.5 Cognitive Engine" : "Local Ollama Fallback Engine"}</span>
               </div>
@@ -148,7 +148,7 @@ export default function FitnessChat() {
 
         <button
           onClick={handleClearChat}
-          className="w-full flex items-center justify-center space-x-2 bg-dark-border hover:bg-brand-red/10 hover:text-brand-red text-gray-400 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer"
+          className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-brand-red/10 hover:text-brand-red text-slate-600 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border border-slate-200/50"
         >
           <RefreshCw className="w-4 h-4" />
           <span>CLEAR CHAT HISTORY</span>
@@ -156,31 +156,31 @@ export default function FitnessChat() {
       </div>
 
       {/* Right Content Pane: Chat Area */}
-      <div className="lg:col-span-3 bg-dark-card border border-dark-border rounded-3xl flex flex-col justify-between overflow-hidden shadow-xl">
+      <div className="lg:col-span-3 bg-dark-card border border-dark-border rounded-3xl flex flex-col justify-between overflow-hidden shadow-sm">
         {/* Messages Header */}
-        <div className="p-4 bg-dark-card border-b border-dark-border flex items-center justify-between">
+        <div className="p-4 bg-white border-b border-dark-border flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-2.5 h-2.5 bg-brand-red rounded-full animate-pulse"></div>
-            <span className="text-xs font-bold uppercase tracking-wider text-white">Coach OS Architect</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900">Coach OS Architect</span>
           </div>
           <button
             onClick={handleClearChat}
-            className="lg:hidden text-xs text-gray-400 hover:text-brand-red font-bold"
+            className="lg:hidden text-xs text-slate-600 hover:text-brand-red font-bold"
           >
             Clear
           </button>
         </div>
 
         {/* Message Bubble Stream */}
-        <div className="flex-1 p-6 overflow-y-auto space-y-4">
+        <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-white">
           {/* Welcome Message */}
           {welcomeMessage && (
             <div className="flex items-start space-x-3 max-w-[85%]">
               <div className="w-8 h-8 rounded-lg bg-brand-red/10 text-brand-red flex items-center justify-center shrink-0 font-bold text-xs">
                 AI
               </div>
-              <div className="bg-dark-bg border border-dark-border p-4 rounded-2xl rounded-tl-none">
-                <p className="text-xs text-gray-300 leading-relaxed">{welcomeMessage}</p>
+              <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl rounded-tl-none">
+                <p className="text-xs text-slate-700 leading-relaxed">{welcomeMessage}</p>
               </div>
             </div>
           )}
@@ -190,7 +190,7 @@ export default function FitnessChat() {
             <React.Fragment key={idx}>
               {/* User Bubble */}
               <div className="flex items-start space-x-3 justify-end">
-                <div className="bg-brand-red text-white p-4 rounded-2xl rounded-tr-none text-xs max-w-[85%] font-medium">
+                <div className="bg-brand-red text-white p-4 rounded-2xl rounded-tr-none text-xs max-w-[85%] font-medium shadow-md shadow-brand-red/10">
                   {m.message}
                 </div>
               </div>
@@ -204,7 +204,7 @@ export default function FitnessChat() {
                   <div className={`p-4 rounded-2xl rounded-tl-none border text-xs leading-relaxed ${
                     m.isError 
                       ? 'bg-brand-red/10 border-brand-red/30 text-brand-red' 
-                      : 'bg-dark-bg border-dark-border text-gray-300'
+                      : 'bg-slate-50 border-slate-100 text-slate-700'
                   }`}>
                     {m.loading ? (
                       <div className="flex items-center space-x-2 py-1">
@@ -216,7 +216,7 @@ export default function FitnessChat() {
                       <div className="space-y-2">
                         <p className="whitespace-pre-line">{m.response}</p>
                         {m.intent && (
-                          <span className="inline-block text-[8px] bg-dark-border text-gray-500 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          <span className="inline-block text-[8px] bg-slate-200/60 text-slate-500 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                             Intent: {m.intent} • {m.tier}
                           </span>
                         )}
@@ -231,7 +231,7 @@ export default function FitnessChat() {
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-4 bg-dark-bg border-t border-dark-border flex space-x-3">
+        <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-dark-border flex space-x-3">
           <input
             type="text"
             required
@@ -239,12 +239,12 @@ export default function FitnessChat() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Ask your coach: 'How do I squat with lower back issues?' or 'Should I do low carb today?'"
-            className="flex-1 bg-dark-card border border-dark-border rounded-xl px-5 py-3 text-xs focus:outline-none focus:border-brand-red transition-all duration-200"
+            className="flex-1 bg-white border border-slate-200 rounded-xl px-5 py-3 text-xs focus:outline-none focus:border-brand-red text-slate-900 transition-all duration-200 placeholder-slate-450"
           />
           <button
             type="submit"
             disabled={loading}
-            className="bg-brand-red hover:bg-brand-red-hover text-white p-3.5 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-50"
+            className="bg-brand-red hover:bg-brand-red-hover text-white p-3.5 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-50 shadow-md shadow-brand-red/10"
           >
             <Send className="w-4 h-4" />
           </button>

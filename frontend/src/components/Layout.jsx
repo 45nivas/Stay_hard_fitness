@@ -8,12 +8,10 @@ import {
   Camera, 
   BarChart2, 
   LogOut, 
-  User, 
   Flame 
 } from 'lucide-react';
 import axios from 'axios';
 
-// Backend base URL (change to empty string for production/Docker build since it will be served from the same host)
 const API_BASE_URL = 'http://localhost:8000';
 axios.defaults.withCredentials = true;
 
@@ -42,18 +40,18 @@ export default function Layout({ children, user, setUser }) {
   ];
 
   return (
-    <div className="min-h-screen bg-dark-bg text-white flex flex-col md:flex-row">
+    <div className="min-h-screen bg-dark-bg text-slate-900 flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-dark-card border-r border-dark-border flex flex-col justify-between shrink-0">
+      <aside className="w-full md:w-64 bg-dark-card border-r border-dark-border flex flex-col justify-between shrink-0 shadow-sm">
         <div>
           {/* Brand Header */}
           <div className="p-6 border-b border-dark-border flex items-center space-x-3">
-            <div className="bg-brand-red p-2 rounded-lg flex items-center justify-center">
+            <div className="bg-brand-red p-2 rounded-xl flex items-center justify-center shadow-md shadow-brand-red/10">
               <Dumbbell className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white m-0 leading-none">STAY HARD</h1>
-              <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Fitness Analyser</span>
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-900 m-0 leading-none">STAY HARD</h1>
+              <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-1 block">Fitness Analyser</span>
             </div>
           </div>
 
@@ -66,10 +64,10 @@ export default function Layout({ children, user, setUser }) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${
                     isActive 
-                      ? 'bg-brand-red text-white shadow-lg shadow-brand-red/10' 
-                      : 'text-gray-400 hover:text-white hover:bg-dark-border'
+                      ? 'bg-brand-red text-white shadow-lg shadow-brand-red/15' 
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   <Icon className="w-5 h-5 shrink-0" />
@@ -82,21 +80,21 @@ export default function Layout({ children, user, setUser }) {
 
         {/* User Profile Summary & Logout */}
         {user && (
-          <div className="p-4 border-t border-dark-border bg-dark-bg/30">
+          <div className="p-4 border-t border-dark-border bg-slate-50/50">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-dark-border flex items-center justify-center text-brand-red font-bold text-sm">
+                <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-brand-red font-black text-sm">
                   {user.username.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="truncate max-w-[120px]">
-                  <p className="text-sm font-bold truncate text-white leading-none m-0">{user.username}</p>
-                  <span className="text-[10px] text-gray-500">Athlete</span>
+                  <p className="text-sm font-black truncate text-slate-900 leading-none m-0">{user.username}</p>
+                  <span className="text-[10px] text-slate-400 font-bold block mt-1">Athlete</span>
                 </div>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center space-x-2 bg-dark-border hover:bg-brand-red/10 hover:text-brand-red text-gray-400 py-2.5 rounded-lg text-xs font-bold transition-all duration-200"
+              className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-brand-red/10 hover:text-brand-red text-slate-600 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Log Out</span>

@@ -87,7 +87,7 @@ export default function ProfileSetup() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <div className="w-12 h-12 border-4 border-brand-red border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-400 text-sm font-semibold">Retrieving your athlete profile...</p>
+        <p className="text-slate-500 text-sm font-semibold">Retrieving your athlete profile...</p>
       </div>
     );
   }
@@ -100,12 +100,12 @@ export default function ProfileSetup() {
       className="space-y-6"
     >
       <div>
-        <h2 className="text-3xl font-extrabold tracking-tight text-white m-0">Setup Athlete Profile</h2>
-        <p className="text-gray-400 text-sm mt-1">Configure your biometrics and parameters to initialize adaptive recommendations.</p>
+        <h2 className="text-3xl font-black tracking-tight text-slate-900 m-0">Setup Athlete Profile</h2>
+        <p className="text-slate-500 text-sm mt-1.5 font-medium">Configure your biometrics and parameters to initialize adaptive recommendations.</p>
       </div>
 
       {error && (
-        <div className="bg-brand-red/10 border border-brand-red/50 text-brand-red text-xs p-3 rounded-lg text-center font-bold">
+        <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs p-3 rounded-xl text-center font-bold">
           {error}
         </div>
       )}
@@ -114,30 +114,30 @@ export default function ProfileSetup() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Section 1: Core Biometrics */}
-          <div className="bg-dark-card border border-dark-border p-6 rounded-2xl space-y-5">
+          <div className="bg-dark-card border border-dark-border p-6 rounded-3xl space-y-5 shadow-sm">
             <div className="flex items-center space-x-2 border-b border-dark-border pb-3">
               <User className="w-5 h-5 text-brand-red" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-white m-0">Biometric Details</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-950 m-0">Biometric Details</h3>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Age</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Age</label>
                 <input 
                   type="number"
                   required
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
                   placeholder="e.g., 25"
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Gender</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Gender</label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
                 >
                   <option value="M">Male</option>
                   <option value="F">Female</option>
@@ -148,7 +148,7 @@ export default function ProfileSetup() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Height (cm)</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Height (cm)</label>
                 <input 
                   type="number"
                   step="0.1"
@@ -156,11 +156,11 @@ export default function ProfileSetup() {
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
                   placeholder="e.g., 180"
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Weight (kg)</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Weight (kg)</label>
                 <input 
                   type="number"
                   step="0.1"
@@ -168,36 +168,36 @@ export default function ProfileSetup() {
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   placeholder="e.g., 82.5"
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Daily Calorie Target (Optional)</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Daily Calorie Target (Optional)</label>
               <input 
                 type="number"
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
                 placeholder="Leave blank for automatic calculation"
-                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
               />
             </div>
           </div>
 
           {/* Section 2: Fitness Goals & Settings */}
-          <div className="bg-dark-card border border-dark-border p-6 rounded-2xl space-y-5">
+          <div className="bg-dark-card border border-dark-border p-6 rounded-3xl space-y-5 shadow-sm">
             <div className="flex items-center space-x-2 border-b border-dark-border pb-3">
               <Target className="w-5 h-5 text-brand-red" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-white m-0">Goals & Level</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-950 m-0">Goals & Level</h3>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Fitness Level</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Fitness Level</label>
               <select
                 value={fitnessLevel}
                 onChange={(e) => setFitnessLevel(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
               >
                 <option value="beginner">Beginner (New to lifting)</option>
                 <option value="intermediate">Intermediate (1-3 years experience)</option>
@@ -206,77 +206,77 @@ export default function ProfileSetup() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Primary Goal</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Primary Goal</label>
               <select
                 value={primaryGoal}
                 onChange={(e) => setPrimaryGoal(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
               >
                 <option value="muscle_gain">Muscle Gain (Hypertrophy)</option>
                 <option value="strength">Build Strength (Powerlifting)</option>
-                <option value="weight_loss">Weight Loss (Fat Loss)</option>
+                <option value="weight_loss">Weight Loss (Deficit)</option>
                 <option value="endurance">Improve Endurance</option>
                 <option value="general_fitness">General Fitness / Health</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Available Time Per Session (minutes)</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Available Time Per Session (minutes)</label>
               <input 
                 type="number"
                 required
                 value={availableTime}
                 onChange={(e) => setAvailableTime(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
               />
             </div>
           </div>
 
           {/* Section 3: Training Parameters & Equipment */}
-          <div className="bg-dark-card border border-dark-border p-6 rounded-2xl space-y-5">
+          <div className="bg-dark-card border border-dark-border p-6 rounded-3xl space-y-5 shadow-sm">
             <div className="flex items-center space-x-2 border-b border-dark-border pb-3">
               <Activity className="w-5 h-5 text-brand-red" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-white m-0">Equipment & Focus</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-950 m-0">Equipment & Focus</h3>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Equipment Available (Comma-separated)</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Equipment Available (Comma-separated)</label>
               <textarea 
                 rows="2"
                 value={equipment}
                 onChange={(e) => setEquipment(e.target.value)}
                 placeholder="e.g., dumbbells, barbell, pull-up bar, resistance bands"
-                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200 resize-none"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200 resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Weak / Lagging Muscle Groups (Comma-separated)</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Weak / Lagging Muscle Groups (Comma-separated)</label>
               <input 
                 type="text"
                 value={weakMuscles}
                 onChange={(e) => setWeakMuscles(e.target.value)}
                 placeholder="e.g., chest, biceps, calves"
-                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
               />
             </div>
           </div>
 
           {/* Section 4: Injury / Safety */}
-          <div className="bg-dark-card border border-dark-border p-6 rounded-2xl space-y-5">
+          <div className="bg-dark-card border border-dark-border p-6 rounded-3xl space-y-5 shadow-sm">
             <div className="flex items-center space-x-2 border-b border-dark-border pb-3">
               <ShieldAlert className="w-5 h-5 text-brand-red" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-white m-0">Injuries & Safety</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-950 m-0">Injuries & Safety</h3>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Physical Injuries or Limitations</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Physical Injuries or Limitations</label>
               <textarea 
                 rows="4"
                 value={injuries}
                 onChange={(e) => setInjuries(e.target.value)}
                 placeholder="e.g., lower back pain, bad left knee, shoulder impingement. AI coach will design modifications around this."
-                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red transition-all duration-200 resize-none"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200 resize-none"
               />
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function ProfileSetup() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-brand-red hover:bg-brand-red-hover text-white px-8 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer flex items-center space-x-2"
+            className="bg-brand-red hover:bg-brand-red-hover text-white px-8 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer flex items-center space-x-2 shadow-lg shadow-brand-red/10"
           >
             {loading ? (
               <>

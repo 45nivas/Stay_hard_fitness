@@ -4,7 +4,6 @@ import {
   Utensils, 
   Mic, 
   MicOff, 
-  Plus, 
   Trash2, 
   Loader2, 
   Sparkles, 
@@ -35,12 +34,12 @@ export default function CalorieTracker() {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
 
-  // Voice logging parser candidates states
   const [candidates, setCandidates] = useState([]);
   const [foodQuery, setFoodQuery] = useState('');
+  const [quantity, setQuantity] = useState(100);
+  const [unit, setUnit] = useState('g');
   const [showPicker, setShowPicker] = useState(false);
 
-  // Native Browser Speech Recognition Setup
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -111,13 +110,13 @@ export default function CalorieTracker() {
       const data = res.data;
 
       if (data.mode === 'auto') {
-        // Automatically logged using preference
         setInputText('');
         fetchDailySummary();
       } else if (data.mode === 'picker') {
-        // Ask user to pick a candidate
         setCandidates(data.candidates);
         setFoodQuery(data.food_query);
+        setQuantity(data.quantity || 100);
+        setUnit(data.unit || 'g');
         setShowPicker(true);
       }
     } catch (err) {
@@ -133,7 +132,7 @@ export default function CalorieTracker() {
     try {
       await axios.post(`${API_BASE_URL}/api/confirm-meal/`, {
         food_query: foodQuery,
-        chosen_food_name: candidate.food,
+        chosen_food_name: candidate.name,
         chosen_food_data: {
           calories: candidate.calories,
           protein: candidate.protein,
@@ -142,11 +141,10 @@ export default function CalorieTracker() {
           fiber: candidate.fiber || 0,
           sodium: candidate.sodium || 0
         },
-        quantity: candidate.quantity || 100,
-        unit: candidate.unit || 'g'
+        quantity: quantity,
+        unit: unit
       });
 
-      // Reset
       setShowPicker(false);
       setCandidates([]);
       setInputText('');
@@ -163,7 +161,6 @@ export default function CalorieTracker() {
     try {
       const res = await axios.post(`${API_BASE_URL}/api/delete-meal/`, { id: mealId });
       if (res.data.success) {
-        // Animated deletion
         setLoggedMeals(meals => meals.filter(m => m.id !== mealId));
         fetchDailySummary();
       }
@@ -181,7 +178,7 @@ export default function CalorieTracker() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <div className="w-12 h-12 border-4 border-brand-red border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-400 text-sm font-semibold">Gathering daily nutrition data...</p>
+        <p className="text-slate-500 text-sm font-semibold">Gathering daily nutrition data...</p>
       </div>
     );
   }
@@ -190,19 +187,19 @@ export default function CalorieTracker() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-extrabold tracking-tight text-white m-0">Calorie & Macro Tracker</h2>
-        <p className="text-gray-400 text-sm mt-1">Track your calories and nutrient partitions using natural voice dictation.</p>
+        <h2 className="text-3xl font-black text-slate-900 m-0">Calorie & Macro Tracker</h2>
+        <p className="text-slate-500 text-sm mt-1.5 font-medium">Track your calories and nutrient partitions using natural voice dictation.</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Calorie Card */}
-        <div className="lg:col-span-1 bg-dark-card border border-dark-border p-6 rounded-3xl flex flex-col justify-between shadow-lg">
+        <div className="lg:col-span-1 bg-dark-card border border-dark-border p-6 rounded-3xl flex flex-col justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Calories Consumed</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Calories Consumed</span>
             <div className="flex items-baseline space-x-1.5">
-              <span className="text-4xl font-black text-white">{summary.total_calories}</span>
-              <span className="text-xs text-gray-400 font-bold">/ {summary.target_calories || 2000} kcal</span>
+              <span className="text-4xl font-black text-slate-900">{summary.total_calories}</span>
+              <span className="text-xs text-slate-400 font-bold">/ {summary.target_calories || 2000} kcal</span>
             </div>
           </div>
           {/* Progress Bar */}
@@ -214,22 +211,22 @@ export default function CalorieTracker() {
               className="bg-brand-red h-full rounded-full"
             />
           </div>
-          <div className="flex justify-between items-center text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-2">
+          <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">
             <span>{calculatePct(summary.total_calories, summary.target_calories)}% Complete</span>
             <span>{Math.max((summary.target_calories || 2000) - summary.total_calories, 0)} kcal left</span>
           </div>
         </div>
 
         {/* Macros Card */}
-        <div className="lg:col-span-3 bg-dark-card border border-dark-border p-6 rounded-3xl shadow-lg space-y-6">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Macronutrient Partitions</span>
+        <div className="lg:col-span-3 bg-dark-card border border-dark-border p-6 rounded-3xl shadow-md space-y-6">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Macronutrient Partitions</span>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Protein */}
             <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-bold text-white">Protein</span>
-                <span className="text-gray-400 font-bold">{summary.total_protein}g / {summary.target_protein || 150}g</span>
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-slate-800">Protein</span>
+                <span className="text-slate-500 font-bold">{summary.total_protein}g / {summary.target_protein || 150}g</span>
               </div>
               <div className="w-full bg-dark-bg h-2 rounded-full overflow-hidden border border-dark-border">
                 <motion.div 
@@ -239,16 +236,16 @@ export default function CalorieTracker() {
                   className="bg-brand-red h-full rounded-full"
                 />
               </div>
-              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">
                 {calculatePct(summary.total_protein, summary.target_protein)}% of target
               </span>
             </div>
 
             {/* Carbs */}
             <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-bold text-white">Carbohydrates</span>
-                <span className="text-gray-400 font-bold">{summary.total_carbs}g / {summary.target_carbs || 220}g</span>
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-slate-800">Carbohydrates</span>
+                <span className="text-slate-500 font-bold">{summary.total_carbs}g / {summary.target_carbs || 220}g</span>
               </div>
               <div className="w-full bg-dark-bg h-2 rounded-full overflow-hidden border border-dark-border">
                 <motion.div 
@@ -258,16 +255,16 @@ export default function CalorieTracker() {
                   className="bg-yellow-500 h-full rounded-full"
                 />
               </div>
-              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">
                 {calculatePct(summary.total_carbs, summary.target_carbs)}% of target
               </span>
             </div>
 
             {/* Fats */}
             <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-bold text-white">Fats</span>
-                <span className="text-gray-400 font-bold">{summary.total_fat}g / {summary.target_fat || 65}g</span>
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-slate-800">Fats</span>
+                <span className="text-slate-500 font-bold">{summary.total_fat}g / {summary.target_fat || 65}g</span>
               </div>
               <div className="w-full bg-dark-bg h-2 rounded-full overflow-hidden border border-dark-border">
                 <motion.div 
@@ -277,7 +274,7 @@ export default function CalorieTracker() {
                   className="bg-orange-500 h-full rounded-full"
                 />
               </div>
-              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block">
                 {calculatePct(summary.total_fat, summary.target_fat)}% of target
               </span>
             </div>
@@ -286,14 +283,14 @@ export default function CalorieTracker() {
       </div>
 
       {/* Main Action Block: Voice Log Input */}
-      <div className="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-lg relative overflow-hidden">
+      <div className="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-md relative overflow-hidden">
         <div className="flex items-center space-x-2 mb-4">
           <Sparkles className="w-5 h-5 text-brand-red animate-pulse" />
-          <h3 className="text-lg font-bold text-white m-0 uppercase tracking-wider">Voice Macro Logger</h3>
+          <h3 className="text-sm font-black text-slate-900 m-0 uppercase tracking-widest">Voice Macro Logger</h3>
         </div>
 
         {error && (
-          <div className="bg-brand-red/10 border border-brand-red/50 text-brand-red text-xs p-3 rounded-lg mb-4 text-center font-bold">
+          <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs p-3 rounded-xl mb-4 text-center font-bold">
             {error}
           </div>
         )}
@@ -306,16 +303,27 @@ export default function CalorieTracker() {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Speak or type: 'For lunch I ate 200g of grilled chicken, a cup of brown rice, and an avocado...'"
-              className="w-full bg-dark-bg border border-dark-border rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:border-brand-red transition-all duration-200 resize-none leading-relaxed"
+              className="w-full bg-slate-50 border border-slate-250 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200 resize-none leading-relaxed text-slate-800 font-medium shadow-inner"
             />
-            {/* Record button */}
+            
+            {/* Dynamic Bouncing Waveform Animation for Voice Recording */}
+            {isRecording && (
+              <div className="absolute right-16 top-6 flex items-center space-x-1 h-5 pointer-events-none">
+                <span className="w-1 h-3 bg-brand-red rounded-full animate-bounce [animation-duration:0.6s]"></span>
+                <span className="w-1 h-5 bg-brand-red rounded-full animate-bounce [animation-duration:0.4s] [animation-delay:0.1s]"></span>
+                <span className="w-1 h-2 bg-brand-red rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.2s]"></span>
+                <span className="w-1 h-4 bg-brand-red rounded-full animate-bounce [animation-duration:0.5s] [animation-delay:0.3s]"></span>
+                <span className="w-1 h-3 bg-brand-red rounded-full animate-bounce [animation-duration:0.7s] [animation-delay:0.15s]"></span>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleToggleRecord}
               className={`absolute right-4 top-4 p-3 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
                 isRecording 
-                  ? 'bg-brand-red text-white animate-pulse' 
-                  : 'bg-dark-border text-gray-400 hover:text-white hover:bg-dark-border-hover'
+                  ? 'bg-brand-red text-white animate-pulse shadow-md shadow-brand-red/15' 
+                  : 'bg-dark-border text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
@@ -326,7 +334,7 @@ export default function CalorieTracker() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-brand-red hover:bg-brand-red-hover text-white px-8 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer flex items-center space-x-2"
+              className="bg-brand-red hover:bg-brand-red-hover text-white px-8 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer flex items-center space-x-2 shadow-md shadow-brand-red/10"
             >
               {loading ? (
                 <>
@@ -347,22 +355,22 @@ export default function CalorieTracker() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6"
             >
               <motion.div 
                 initial={{ scale: 0.95 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.95 }}
-                className="bg-dark-card border border-dark-border p-6 rounded-2xl w-full max-w-lg shadow-2xl space-y-4 max-h-[90%] overflow-y-auto"
+                className="bg-white border border-slate-200 p-6 rounded-2xl w-full max-w-lg shadow-2xl space-y-4 max-h-[90%] overflow-y-auto"
               >
-                <div className="flex items-center space-x-2 pb-3 border-b border-dark-border">
+                <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
                   <Calculator className="w-5 h-5 text-brand-red" />
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider m-0">
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest m-0">
                     Confirm Food Data: "{foodQuery}"
                   </h4>
                 </div>
 
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-500 font-semibold">
                   Multiple variations detected. Select the matching item to save to your daily telemetry:
                 </p>
 
@@ -371,19 +379,19 @@ export default function CalorieTracker() {
                     <button
                       key={idx}
                       onClick={() => handleConfirmCandidate(cand)}
-                      className="w-full text-left bg-dark-bg border border-dark-border hover:border-brand-red p-4 rounded-xl flex justify-between items-center transition-all duration-200 group cursor-pointer"
+                      className="w-full text-left bg-slate-50 border border-slate-200 hover:border-brand-red hover:bg-white p-4 rounded-xl flex justify-between items-center transition-all duration-200 group cursor-pointer"
                     >
                       <div>
-                        <p className="text-sm font-bold text-white group-hover:text-brand-red transition-colors duration-200">
-                          {cand.food}
+                        <p className="text-sm font-bold text-slate-900 group-hover:text-brand-red transition-colors duration-200">
+                          {cand.name}
                         </p>
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-                          {cand.quantity}{cand.unit} • P: {cand.protein}g • C: {cand.carbs}g • F: {cand.fat}g
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          {quantity}{unit} • P: {cand.protein}g • C: {cand.carbs}g • F: {cand.fat}g
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm font-black text-white">{cand.calories} kcal</span>
-                        <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-brand-red transition-all duration-200" />
+                        <span className="text-sm font-black text-slate-950">{cand.calories} kcal</span>
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-brand-red transition-all duration-200" />
                       </div>
                     </button>
                   ))}
@@ -392,7 +400,7 @@ export default function CalorieTracker() {
                 <div className="flex justify-end pt-2">
                   <button
                     onClick={() => setShowPicker(false)}
-                    className="text-xs font-bold text-gray-500 hover:text-white transition-colors duration-200 cursor-pointer"
+                    className="text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors duration-200 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -405,7 +413,7 @@ export default function CalorieTracker() {
 
       {/* Daily Logs Table */}
       <div className="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-lg">
-        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-4">Daily Food Ledger</span>
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-4">Daily Food Ledger</span>
         
         <div className="space-y-3">
           <AnimatePresence initial={false}>
@@ -424,17 +432,17 @@ export default function CalorieTracker() {
                       <Utensils className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white uppercase">{meal.food}</p>
-                      <span className="text-[10px] text-gray-500 font-bold uppercase">
+                      <p className="text-sm font-bold text-slate-900 uppercase">{meal.food}</p>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">
                         {meal.quantity}{meal.unit} • P: {meal.protein}g • C: {meal.carbs}g • F: {meal.fat}g
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span className="text-sm font-black text-white">{meal.calories} kcal</span>
+                    <span className="text-sm font-black text-slate-900">{meal.calories} kcal</span>
                     <button
                       onClick={() => handleDeleteMeal(meal.id)}
-                      className="text-gray-500 hover:text-brand-red p-1 rounded transition-colors duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
+                      className="text-slate-400 hover:text-brand-red p-1 rounded transition-colors duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -442,7 +450,7 @@ export default function CalorieTracker() {
                 </motion.div>
               ))
             ) : (
-              <div className="text-center py-8 text-xs text-gray-500 font-semibold">
+              <div className="text-center py-8 text-xs text-slate-400 font-semibold">
                 No food logged today. Dictate or type your meals to get started!
               </div>
             )}

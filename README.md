@@ -9,7 +9,7 @@ A modern, production-grade Django web application that combines state-of-the-art
 ### 1. 🤖 Multi-Engine Cloud & Local AI Coach (`OS Architect`)
 The application features **OS Architect**, a strict, clinical Senior Fitness & Nutrition Coach. It leverages a modern, highly resilient multi-engine routing system:
 - **Primary Engine**: Cloud-based `gemini-1.5-flash` for ultra-low latency (< 1s) and sub-second nutrient analysis.
-- **Secondary Engine**: Local Ollama integration targeting `mistral:7b` or `llama3`.
+- **Secondary Engine**: Local Ollama integration targeting `qwen2.5:3b`.
 - **Offline Engine**: Fallback to high-fidelity, procedurally generated workout/macros structures when offline or without API keys.
 - **Dynamic Context Rendering**: Displays active backend status (e.g. `Cloud Engine Active (Gemini 1.5 Flash)` vs `Local Fallback Active`) in real-time.
 

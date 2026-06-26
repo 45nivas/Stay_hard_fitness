@@ -34,7 +34,7 @@ export default function Signup({ setUser }) {
       
       if (response.data.success) {
         setUser({ username: response.data.username });
-        navigate('/profile'); // Directs to biometrics setup on first log
+        navigate('/profile');
       }
     } catch (err) {
       console.error(err);
@@ -45,24 +45,24 @@ export default function Signup({ setUser }) {
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-6">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-dark-card border border-dark-border p-8 rounded-2xl shadow-xl"
+        className="w-full max-w-md bg-white border border-slate-200 p-8 rounded-3xl shadow-xl shadow-slate-100"
       >
         {/* Header Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-brand-red p-3 rounded-xl mb-3 flex items-center justify-center">
+          <div className="bg-brand-red p-3 rounded-2xl mb-3 flex items-center justify-center shadow-lg shadow-brand-red/15">
             <Dumbbell className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white m-0">Start Training</h2>
-          <p className="text-gray-400 text-xs mt-1">Create your athlete profile today</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 m-0">Start Training</h2>
+          <p className="text-slate-500 text-xs mt-1.5 font-medium">Create your athlete profile today</p>
         </div>
 
         {error && (
-          <div className="bg-brand-red/10 border border-brand-red/50 text-brand-red text-xs p-3 rounded-lg mb-6 text-center font-semibold">
+          <div className="bg-brand-red/10 border border-brand-red/30 text-brand-red text-xs p-3 rounded-xl mb-6 text-center font-bold">
             {error}
           </div>
         )}
@@ -70,20 +70,20 @@ export default function Signup({ setUser }) {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Username Input */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Username</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Username</label>
             <input 
               type="text"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Pick a unique username"
-              className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
             />
           </div>
 
           {/* Password Input */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Password</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Password</label>
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"}
@@ -91,12 +91,12 @@ export default function Signup({ setUser }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Choose a strong password"
-                className="w-full bg-dark-bg border border-dark-border rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors duration-200"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors duration-200"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -105,14 +105,14 @@ export default function Signup({ setUser }) {
 
           {/* Confirm Password Input */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Confirm Password</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Confirm Password</label>
             <input 
               type={showPassword ? "text" : "password"}
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Verify your password"
-              className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-red transition-all duration-200"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-all duration-200"
             />
           </div>
 
@@ -120,7 +120,7 @@ export default function Signup({ setUser }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-red hover:bg-brand-red-hover text-white py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2"
+            className="w-full bg-brand-red hover:bg-brand-red-hover text-white py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2 shadow-lg shadow-brand-red/10"
           >
             {loading ? (
               <>
@@ -134,7 +134,7 @@ export default function Signup({ setUser }) {
         </form>
 
         {/* Login Link */}
-        <div className="mt-8 text-center text-xs text-gray-400">
+        <div className="mt-8 text-center text-xs text-slate-500 font-medium">
           Already registered?{' '}
           <Link to="/login" className="text-brand-red hover:text-brand-red-hover font-bold hover:underline transition-all duration-200">
             Sign In Here

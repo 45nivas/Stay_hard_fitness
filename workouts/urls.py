@@ -36,6 +36,9 @@ urlpatterns = [
     path('body-analysis/', views.body_analysis_view, name='body_analysis'),
     path('api/analyse-body/', views.analyse_body_api, name='analyse_body_api'),
     path('api/voice-log-workout/', views.voice_log_workout_api, name='voice_log_workout_api'),
+    path('api/parse-workout-voice/', views.parse_workout_voice_api, name='parse_workout_voice_api'),
+    path('api/confirm-workout-log/', views.confirm_workout_log_api, name='confirm_workout_log_api'),
+    path('api/transcribe-audio/', views.transcribe_audio, name='transcribe_audio'),
     # Decoupled APIs
     path('api/login/', views.api_login, name='api_login'),
     path('api/signup/', views.api_signup, name='api_signup'),
@@ -46,4 +49,7 @@ urlpatterns = [
     path('api/chat/', views.api_fitness_chat, name='api_fitness_chat'),
     path('api/one-rep-max/', views.api_one_rep_max_calculator, name='api_one_rep_max_calculator'),
     path('api/carb-cycling/', views.api_carb_cycling_calculator, name='api_carb_cycling_calculator'),
+    path('api/get-workouts/', views.api_get_workout_logs, name='api_get_workout_logs'),
+    path('api/delete-workout/', views.api_delete_workout_log, name='api_delete_workout_log'),
+    path('api/exercise-progress/<str:exercise_name>/', views.exercise_progress_api, name='exercise_progress_api'),
 ]

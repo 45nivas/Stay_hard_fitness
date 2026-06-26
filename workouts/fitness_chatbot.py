@@ -1,5 +1,5 @@
 """
-Fitness Chatbot powered by Ollama (llama3.2) for personalized fitness guidance.
+Fitness Chatbot powered by Ollama (qwen2.5:3b) for personalized fitness guidance.
 Handles user queries about workouts, nutrition, and fitness goals.
 Off-topic questions are politely redirected to fitness topics.
 """
@@ -390,7 +390,7 @@ CRITICAL INSTRUCTION: If the user asks for a workout plan, a transformation prog
         return self._query_llm(prompt)
     
     def _query_llm(self, prompt):
-        """Query LLM with hybrid routing: Gemini 1.5 Flash → mistral:7b → llama3 → offline responses."""
+        """Query LLM with hybrid routing: Gemini 1.5 Flash → qwen2.5:3b → offline responses."""
         # 1. Primary: Gemini 1.5 Flash Cloud
         result = self._query_gemini_1_5(prompt)
         if result:
@@ -431,35 +431,29 @@ CRITICAL INSTRUCTION: If the user asks for a workout plan, a transformation prog
         return None
 
     def _query_ollama(self, prompt):
-        """Query Ollama LLM with fallback: mistral:7b → llama3 → offline responses."""
+        """Query Ollama LLM using qwen2.5:3b."""
 
-        # Model 1: mistral:7b (primary — best instruction-following, clean responses)
-        result = self._call_ollama_model("mistral:7b", prompt, timeout=60)
+        # Primary: qwen2.5:3b (user's local lightweight model)
+        result = self._call_ollama_model("qwen2.5:3b", prompt, timeout=60)
         if result:
             return result
 
-        # Model 2: llama3 8B (fallback — strong general model)
-        logger.info("Primary model unavailable, falling back to llama3")
-        result = self._call_ollama_model("llama3", prompt, timeout=120)
-        if result:
-            return result
-
-        # Model 3: Offline hardcoded responses
-        logger.warning("All Ollama models unavailable — using offline responses")
+        # Fallback: Offline hardcoded responses
+        logger.warning("Ollama model (qwen2.5:3b) unavailable — using offline responses")
         return self._get_offline_response(prompt)
 
     def _warm_up_model(self):
         """Pre-load the primary model into memory for instant responses."""
         try:
             payload = {
-                "model": "mistral:7b",
+                "model": "qwen2.5:3b",
                 "prompt": "hi",
                 "stream": False,
                 "keep_alive": "30m",
                 "options": {"num_predict": 1}
             }
             requests.post(self.ollama_url, json=payload, timeout=120)
-            logger.info("mistral:7b pre-warmed and loaded into memory")
+            logger.info("qwen2.5:3b pre-warmed and loaded into memory")
         except Exception:
             logger.info("Could not pre-warm model (Ollama may not be running)")
 

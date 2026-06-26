@@ -99,17 +99,17 @@ export default function BodyVision() {
       className="space-y-6"
     >
       <div>
-        <h2 className="text-3xl font-extrabold tracking-tight text-white m-0">Body Vision Analyser</h2>
-        <p className="text-gray-400 text-sm mt-1">Upload a front-facing physique photo to extract muscle proportions, skeletal tapers, and balancing parameters.</p>
+        <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 m-0">Body Vision Analyser</h2>
+        <p className="text-slate-500 text-sm mt-1">Upload a front-facing physique photo to extract muscle proportions, skeletal tapers, and balancing parameters.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Upload Form Block */}
-        <div className="lg:col-span-1 bg-dark-card border border-dark-border p-6 rounded-3xl h-fit shadow-lg space-y-5">
+        <div className="lg:col-span-1 bg-dark-card border border-dark-border p-6 rounded-3xl h-fit shadow-sm space-y-5">
           <div className="flex items-center space-x-2 border-b border-dark-border pb-3">
             <Camera className="w-5 h-5 text-brand-red" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white m-0">Photo Uploader</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 m-0">Photo Uploader</h3>
           </div>
 
           {error && (
@@ -120,7 +120,7 @@ export default function BodyVision() {
 
           <form onSubmit={handleUploadSubmit} className="space-y-5">
             {/* File Drag Box */}
-            <div className="relative border-2 border-dashed border-dark-border hover:border-brand-red rounded-2xl overflow-hidden aspect-[3/4] flex items-center justify-center bg-dark-bg cursor-pointer group transition-all duration-200">
+            <div className="relative border-2 border-dashed border-dark-border hover:border-brand-red rounded-2xl overflow-hidden aspect-[3/4] flex items-center justify-center bg-slate-50 cursor-pointer group transition-all duration-200">
               <input 
                 type="file"
                 accept="image/*"
@@ -136,9 +136,9 @@ export default function BodyVision() {
                 />
               ) : (
                 <div className="text-center p-4 space-y-2 select-none z-10">
-                  <Upload className="w-10 h-10 text-gray-500 group-hover:text-brand-red mx-auto transition-colors duration-200" />
-                  <p className="text-xs font-bold text-white">Upload shirtless photo</p>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">JPG, PNG or WEBP (Max 10MB)</p>
+                  <Upload className="w-10 h-10 text-slate-450 group-hover:text-brand-red mx-auto transition-colors duration-200" />
+                  <p className="text-xs font-bold text-slate-700">Upload shirtless photo</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest">JPG, PNG or WEBP (Max 10MB)</p>
                 </div>
               )}
             </div>
@@ -147,7 +147,7 @@ export default function BodyVision() {
             <button
               type="submit"
               disabled={loading || !selectedFile}
-              className="w-full bg-brand-red hover:bg-brand-red-hover text-white py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-2"
+              className="w-full bg-brand-red hover:bg-brand-red-hover text-white py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-2 shadow-md shadow-brand-red/10"
             >
               {loading ? (
                 <>
@@ -171,21 +171,21 @@ export default function BodyVision() {
               className="space-y-6"
             >
               {/* Muscle Balance Radar Chart */}
-              <div className="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-lg flex flex-col md:flex-row gap-6">
+              <div className="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-sm flex flex-col md:flex-row gap-6">
                 
                 {/* Chart Frame */}
-                <div className="w-full md:w-1/2 aspect-square flex items-center justify-center bg-dark-bg/50 border border-dark-border/50 rounded-2xl p-2">
+                <div className="w-full md:w-1/2 aspect-square flex items-center justify-center bg-white border border-dark-border rounded-2xl p-2 shadow-inner">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="75%" data={getRadarData(results.muscle_scores)}>
-                      <PolarGrid stroke="#2e2e2e" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 9, fontWeight: 'bold' }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fill: '#4b5563' }} />
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9, fontWeight: 'bold' }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fill: '#94a3b8' }} />
                       <Radar
                         name="Development"
                         dataKey="score"
                         stroke="#e50914"
                         fill="#e50914"
-                        fillOpacity={0.4}
+                        fillOpacity={0.3}
                       />
                     </RadarChart>
                   </ResponsiveContainer>
@@ -194,18 +194,18 @@ export default function BodyVision() {
                 {/* Muscle metrics lists */}
                 <div className="flex-1 flex flex-col justify-between space-y-4">
                   <div>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Physique Classification</span>
-                    <h3 className="text-2xl font-black text-white mt-1 uppercase select-none">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Physique Classification</span>
+                    <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase select-none">
                       {results.taper_assessment || 'Athletic'} • {results.body_type || 'Mesomorph'}
                     </h3>
                   </div>
 
                   <div className="space-y-3">
                     <div>
-                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Dominant Groups</span>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Dominant Groups</span>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {results.dominant_groups.map(g => (
-                          <span key={g} className="bg-dark-bg border border-dark-border text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                          <span key={g} className="bg-white border border-dark-border text-slate-800 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
                             {g}
                           </span>
                         ))}
@@ -216,7 +216,7 @@ export default function BodyVision() {
                       <span className="text-[9px] font-bold text-brand-red uppercase tracking-widest">Weak / Lagging Groups</span>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {results.weak_groups.map(g => (
-                          <span key={g} className="bg-brand-red/10 border border-brand-red/30 text-brand-red text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+                          <span key={g} className="bg-brand-red/10 border border-brand-red/20 text-brand-red text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
                             {g}
                           </span>
                         ))}
@@ -226,18 +226,18 @@ export default function BodyVision() {
 
                   {/* Landmark Ratios Grid */}
                   {results.landmark_data && (
-                    <div className="grid grid-cols-3 gap-2 text-center bg-dark-bg border border-dark-border/60 p-3.5 rounded-xl">
+                    <div className="grid grid-cols-3 gap-2 text-center bg-white border border-dark-border p-3.5 rounded-xl shadow-sm">
                       <div>
-                        <span className="text-[8px] text-gray-500 font-bold uppercase block">Taper Ratio</span>
-                        <p className="text-sm font-black text-white mt-0.5">{results.landmark_data.taper_ratio?.toFixed(2) || '1.0'}</p>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase block">Taper Ratio</span>
+                        <p className="text-sm font-black text-slate-900 mt-0.5">{results.landmark_data.taper_ratio?.toFixed(2) || '1.0'}</p>
                       </div>
                       <div className="border-x border-dark-border">
-                        <span className="text-[8px] text-gray-500 font-bold uppercase block">Arm Symmetry</span>
-                        <p className="text-sm font-black text-white mt-0.5">{results.landmark_data.arm_symmetry_score?.toFixed(1) || '100'}%</p>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase block">Arm Symmetry</span>
+                        <p className="text-sm font-black text-slate-900 mt-0.5">{results.landmark_data.arm_symmetry_score?.toFixed(1) || '100'}%</p>
                       </div>
                       <div>
-                        <span className="text-[8px] text-gray-500 font-bold uppercase block">Leg Symmetry</span>
-                        <p className="text-sm font-black text-white mt-0.5">{results.landmark_data.leg_symmetry_score?.toFixed(1) || '100'}%</p>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase block">Leg Symmetry</span>
+                        <p className="text-sm font-black text-slate-900 mt-0.5">{results.landmark_data.leg_symmetry_score?.toFixed(1) || '100'}%</p>
                       </div>
                     </div>
                   )}
@@ -245,21 +245,21 @@ export default function BodyVision() {
               </div>
 
               {/* Recommendation Split */}
-              <div className="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-lg space-y-4">
+              <div className="bg-dark-card border border-dark-border p-6 rounded-3xl shadow-sm space-y-4">
                 <div className="flex items-center space-x-2 border-b border-dark-border pb-3">
                   <TrendingUp className="w-5 h-5 text-brand-red" />
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-white m-0">Recommended Programming</h3>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 m-0">Recommended Programming</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1 bg-dark-bg border border-dark-border p-4 rounded-xl text-center flex flex-col justify-center">
-                    <span className="text-[8px] text-gray-500 font-bold uppercase block">Suggested Split</span>
+                  <div className="md:col-span-1 bg-white border border-dark-border p-4 rounded-xl text-center flex flex-col justify-center shadow-sm">
+                    <span className="text-[8px] text-slate-400 font-bold uppercase block">Suggested Split</span>
                     <p className="text-sm font-black text-brand-red uppercase mt-1 leading-tight">{results.suggested_split}</p>
                   </div>
 
                   <div className="md:col-span-2 space-y-1">
-                    <span className="text-[8px] text-gray-500 font-bold uppercase block">Priority Recommendations</span>
-                    <p className="text-xs text-gray-300 leading-relaxed font-semibold italic mt-1">
+                    <span className="text-[8px] text-slate-400 font-bold uppercase block">Priority Recommendations</span>
+                    <p className="text-xs text-slate-700 leading-relaxed font-semibold italic mt-1">
                       "{results.priority_recommendation}"
                     </p>
                   </div>
@@ -268,8 +268,8 @@ export default function BodyVision() {
 
             </motion.div>
           ) : (
-            <div className="bg-dark-card border border-dark-border border-dashed p-12 rounded-3xl text-center text-gray-500 text-sm font-semibold h-full flex flex-col justify-center items-center space-y-3 min-h-[40vh]">
-              <Compass className="w-8 h-8 text-gray-600 animate-spin" />
+            <div className="bg-dark-card border border-dark-border border-dashed p-12 rounded-3xl text-center text-slate-500 text-sm font-semibold h-full flex flex-col justify-center items-center space-y-3 min-h-[40vh]">
+              <Compass className="w-8 h-8 text-slate-400 animate-spin" />
               <p>Upload a shirtless posture snapshot to calculate skeletal tapering and muscular density balance.</p>
             </div>
           )}
